@@ -39,7 +39,7 @@ export default function Login() {
               <Wrench size={18} className="text-white" />
               <Zap size={18} className="text-orange-400" />
             </div>
-            Pronto<span className="text-orange-400">Tecnico</span>
+            <span translate="no">Pronto</span><span translate="no" className="text-orange-400">Tecnico</span>
           </Link>
           <h1 className="text-white text-2xl font-bold mt-6">Bentornato!</h1>
           <p className="text-blue-200 mt-1">Accedi al tuo account</p>

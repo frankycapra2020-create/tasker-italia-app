@@ -13,7 +13,7 @@ export default function Footer() {
                 <Zap size={14} />
               </div>
               <div className="flex flex-col leading-tight">
-                <span>Pronto<span className="text-orange-400">Tecnico</span></span>
+                <span><span translate="no">Pronto</span><span translate="no" className="text-orange-400">Tecnico</span></span>
                 <span className="text-[10px] font-normal text-gray-400 tracking-tight">Il tuo tecnico di fiducia, sempre vicino a te</span>
               </div>
             </Link>
