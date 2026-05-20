@@ -196,7 +196,7 @@ export default function Booking() {
               />
               <span className="text-sm text-gray-600">
                 Accetto i <a href="#" className="text-blue-700 hover:underline">Termini di Servizio</a> e la{' '}
-                <a href="#" className="text-blue-700 hover:underline">Privacy Policy</a> di ProntoTecnico (D.Lgs. 196/2003 e GDPR 2016/679) *
+                <a href="#" className="text-blue-700 hover:underline">Informativa sulla Privacy</a> di ProntoTecnico (D.Lgs. 196/2003 e GDPR 2016/679) *
               </span>
             </label>
             {errors.acceptTerms && <p className="text-red-500 text-xs flex items-center gap-1 -mt-4"><AlertCircle size={11} />{errors.acceptTerms}</p>}

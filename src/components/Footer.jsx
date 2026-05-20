@@ -68,9 +68,9 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
           <p>© 2026 ProntoTecnico S.r.l. – P.IVA IT12345678901 – REA MI-1234567</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white">Privacy Policy</a>
+            <a href="#" className="hover:text-white">Informativa sulla Privacy</a>
             <a href="#" className="hover:text-white">Termini di servizio</a>
-            <a href="#" className="hover:text-white">Cookie Policy</a>
+            <a href="#" className="hover:text-white">Politica sui Cookie</a>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { Menu, X, Wrench, Zap, ChevronDown, LogOut, LayoutDashboard, User } from
 import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
-  { to: '/', label: 'Home' },
+  { to: '/', label: 'Inizio' },
   { to: '/servizi', label: 'Servizi' },
   { to: '/tecnici', label: 'Tecnici' },
   { to: '/tutorial', label: 'Tutorial Sicurezza' },
@@ -54,7 +54,7 @@ function UserMenu({ user, logout }) {
               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
             >
               <LayoutDashboard size={16} className="text-gray-400" />
-              Dashboard
+              Pannello
             </button>
             <div className="border-t border-gray-100 mt-1 pt-1">
               <button
@@ -164,7 +164,7 @@ export default function Navbar() {
                     onClick={() => setOpen(false)}
                     className="mx-1 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <LayoutDashboard size={16} /> Dashboard
+                    <LayoutDashboard size={16} /> Pannello
                   </Link>
                   <button
                     onClick={() => { logout(); setOpen(false) }}
