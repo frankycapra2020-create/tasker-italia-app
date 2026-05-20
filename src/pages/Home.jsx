@@ -25,18 +25,18 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
+      <section className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <div className="max-w-3xl">
-            <span className="badge bg-orange-500/20 text-orange-300 mb-4">
+            <span className="badge bg-orange-500/20 text-orange-200 mb-4">
               🇮🇹 Il marketplace n.1 in Italia per servizi tecnici
             </span>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mt-4 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight mt-4 mb-6 text-white">
               Tecnici esperti,
               <br />
               <span className="text-orange-400">quando ne hai bisogno</span>
             </h1>
-            <p className="text-blue-200 text-xl mb-8 leading-relaxed">
+            <p className="text-blue-100 text-xl mb-8 leading-relaxed">
               Trova idraulici ed elettricisti certificati vicino a te. Interventi garantiti, prezzi trasparenti e sicurezza al primo posto.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -47,7 +47,7 @@ export default function Home() {
                 Esplora i Servizi
               </Link>
             </div>
-            <div className="flex items-center gap-2 mt-6 text-sm text-blue-200">
+            <div className="flex items-center gap-2 mt-6 text-sm text-blue-100">
               <Shield size={16} className="text-green-400" />
               Tutti i tecnici sono verificati, assicurati e con garanzia sul lavoro
             </div>
@@ -61,7 +61,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map(s => (
               <div key={s.label}>
-                <div className="text-3xl font-bold text-brand-800">{s.value}</div>
+                <div className="text-3xl font-bold text-blue-900">{s.value}</div>
                 <div className="text-gray-500 text-sm mt-1">{s.label}</div>
               </div>
             ))}
@@ -94,7 +94,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900">Servizi più richiesti</h2>
               <p className="text-gray-500 mt-1">Soluzioni rapide per le esigenze più comuni</p>
             </div>
-            <Link to="/servizi" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
+            <Link to="/servizi" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
               Vedi tutti <ArrowRight size={16} />
             </Link>
           </div>
@@ -109,22 +109,22 @@ export default function Home() {
 
       {/* Trust section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-brand-800 rounded-3xl p-10 md:p-14 text-white text-center">
+        <div className="bg-blue-900 rounded-3xl p-10 md:p-14 text-white text-center">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center gap-3">
               <Shield size={36} className="text-orange-400" />
-              <h3 className="font-bold text-xl">100% Verificati</h3>
-              <p className="text-blue-200 text-sm">Ogni tecnico è controllato: documenti, certificazioni e assicurazione professionale.</p>
+              <h3 className="font-bold text-xl text-white">100% Verificati</h3>
+              <p className="text-blue-100 text-sm">Ogni tecnico è controllato: documenti, certificazioni e assicurazione professionale.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Clock size={36} className="text-orange-400" />
-              <h3 className="font-bold text-xl">Risposta Rapida</h3>
-              <p className="text-blue-200 text-sm">Per le emergenze garantiamo un tecnico disponibile entro 2 ore, 7 giorni su 7.</p>
+              <h3 className="font-bold text-xl text-white">Risposta Rapida</h3>
+              <p className="text-blue-100 text-sm">Per le emergenze garantiamo un tecnico disponibile entro 2 ore, 7 giorni su 7.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Star size={36} className="text-orange-400" />
-              <h3 className="font-bold text-xl">Garanzia Lavoro</h3>
-              <p className="text-blue-200 text-sm">Soddisfatto o rimborsato. Ogni lavoro è garantito con copertura fino a 12 mesi.</p>
+              <h3 className="font-bold text-xl text-white">Garanzia Lavoro</h3>
+              <p className="text-blue-100 text-sm">Soddisfatto o rimborsato. Ogni lavoro è garantito con copertura fino a 12 mesi.</p>
             </div>
           </div>
         </div>
@@ -138,7 +138,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900">I nostri migliori tecnici</h2>
               <p className="text-gray-500 mt-1">Professionisti selezionati con le valutazioni più alte</p>
             </div>
-            <Link to="/tecnici" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
+            <Link to="/tecnici" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
               Vedi tutti <ArrowRight size={16} />
             </Link>
           </div>
@@ -158,7 +158,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-gray-900 mt-1">Tutorial video gratuiti</h2>
             <p className="text-gray-500 mt-1">Impara a gestire le emergenze più comuni in casa</p>
           </div>
-          <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
+          <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
             Vedi tutti <ArrowRight size={16} />
           </Link>
         </div>

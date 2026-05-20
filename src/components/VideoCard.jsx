@@ -15,7 +15,7 @@ export default function VideoCard({ tutorial }) {
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors flex items-center justify-center">
             <div className="bg-white/90 rounded-full p-4 group-hover:scale-110 transition-transform">
-              <Play size={24} className="text-brand-800 fill-brand-800" />
+              <Play size={24} className="text-blue-800 fill-blue-800" />
             </div>
           </div>
           <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">

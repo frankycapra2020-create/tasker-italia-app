@@ -38,7 +38,7 @@ export default function ServiceCard({ service }) {
       </div>
 
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
-        <span className="text-lg font-bold text-brand-800">{service.price}</span>
+        <span className="text-lg font-bold text-blue-800">{service.price}</span>
         <Link to="/preventivo" className="flex items-center gap-1 text-sm font-semibold text-orange-500 hover:text-orange-600 transition-colors">
           Richiedi preventivo <ArrowRight size={14} />
         </Link>

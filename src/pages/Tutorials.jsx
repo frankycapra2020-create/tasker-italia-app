@@ -70,7 +70,7 @@ export default function Tutorials() {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`badge cursor-pointer transition-colors ${activeCategory === cat.id ? 'bg-brand-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`badge cursor-pointer transition-colors ${activeCategory === cat.id ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {cat.label}
             </button>
@@ -81,15 +81,15 @@ export default function Tutorials() {
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4 mb-10">
         <div className="card p-4 text-center">
-          <div className="text-2xl font-bold text-brand-800">{tutorials.length}</div>
+          <div className="text-2xl font-bold text-blue-800">{tutorials.length}</div>
           <div className="text-xs text-gray-500 mt-1">Video disponibili</div>
         </div>
         <div className="card p-4 text-center">
-          <div className="text-2xl font-bold text-brand-800">100%</div>
+          <div className="text-2xl font-bold text-blue-800">100%</div>
           <div className="text-xs text-gray-500 mt-1">Gratuiti</div>
         </div>
         <div className="card p-4 text-center">
-          <div className="text-2xl font-bold text-brand-800">
+          <div className="text-2xl font-bold text-blue-800">
             {tutorials.reduce((s, t) => s + t.views, 0).toLocaleString('it-IT')}
           </div>
           <div className="text-xs text-gray-500 mt-1">Visualizzazioni</div>

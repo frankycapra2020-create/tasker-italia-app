@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 font-bold text-xl text-white mb-3">
-              <div className="flex items-center gap-1 bg-brand-800 text-white rounded-lg p-1.5">
+              <div className="flex items-center gap-1 bg-blue-800 text-white rounded-lg p-1.5">
                 <Wrench size={14} />
                 <Zap size={14} />
               </div>

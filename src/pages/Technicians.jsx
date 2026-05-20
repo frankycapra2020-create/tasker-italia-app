@@ -71,7 +71,7 @@ export default function Technicians() {
             <button
               key={spec}
               onClick={() => setActiveSpec(spec)}
-              className={`badge cursor-pointer transition-colors ${activeSpec === spec ? 'bg-brand-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`badge cursor-pointer transition-colors ${activeSpec === spec ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {spec}
             </button>
