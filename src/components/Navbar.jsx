@@ -17,12 +17,15 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-blue-800">
-            <div className="flex items-center gap-1 bg-blue-800 text-white rounded-lg p-1.5">
+          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-brand-800">
+            <div className="flex items-center gap-1 bg-brand-800 text-white rounded-lg p-1.5">
               <Wrench size={14} />
               <Zap size={14} />
             </div>
-            <span>Tasker<span className="text-orange-500">Italia</span></span>
+            <div className="flex flex-col leading-tight">
+              <span>Pronto<span className="text-orange-500">Tecnico</span></span>
+              <span className="text-[10px] font-normal text-gray-500 tracking-tight">Il tuo tecnico di fiducia, sempre vicino a te</span>
+            </div>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -32,8 +35,8 @@ export default function Navbar() {
                 to={link.to}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname === link.to
-                    ? 'bg-blue-50 text-blue-800'
-                    : 'text-gray-600 hover:text-blue-800 hover:bg-gray-50'
+                    ? 'bg-brand-50 text-brand-800'
+                    : 'text-gray-600 hover:text-brand-800 hover:bg-gray-50'
                 }`}
               >
                 {link.label}
@@ -42,7 +45,7 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <button className="text-sm font-medium text-gray-600 hover:text-blue-800 transition-colors">
+            <button className="text-sm font-medium text-gray-600 hover:text-brand-800 transition-colors">
               Accedi
             </button>
             <Link to="/preventivo" className="btn-accent text-sm py-2 px-4">
@@ -63,7 +66,7 @@ export default function Navbar() {
                 to={link.to}
                 onClick={() => setOpen(false)}
                 className={`block px-4 py-2.5 rounded-lg text-sm font-medium ${
-                  pathname === link.to ? 'bg-blue-50 text-blue-800' : 'text-gray-600'
+                  pathname === link.to ? 'bg-brand-50 text-brand-800' : 'text-gray-600'
                 }`}
               >
                 {link.label}

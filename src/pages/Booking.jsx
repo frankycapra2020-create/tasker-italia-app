@@ -192,11 +192,11 @@ export default function Booking() {
                 type="checkbox"
                 checked={form.acceptTerms}
                 onChange={e => handleChange('acceptTerms', e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-blue-800 flex-shrink-0"
+                className="mt-0.5 w-4 h-4 accent-[#1a237e] flex-shrink-0"
               />
               <span className="text-sm text-gray-600">
                 Accetto i <a href="#" className="text-blue-700 hover:underline">Termini di Servizio</a> e la{' '}
-                <a href="#" className="text-blue-700 hover:underline">Privacy Policy</a> di TaskerItalia (D.Lgs. 196/2003 e GDPR 2016/679) *
+                <a href="#" className="text-blue-700 hover:underline">Privacy Policy</a> di ProntoTecnico (D.Lgs. 196/2003 e GDPR 2016/679) *
               </span>
             </label>
             {errors.acceptTerms && <p className="text-red-500 text-xs flex items-center gap-1 -mt-4"><AlertCircle size={11} />{errors.acceptTerms}</p>}
@@ -210,7 +210,7 @@ export default function Booking() {
         {/* Sidebar */}
         <div className="space-y-5">
           <div className="card p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Perché scegliere TaskerItalia?</h3>
+            <h3 className="font-bold text-gray-900 mb-4">Perché scegliere ProntoTecnico?</h3>
             <div className="space-y-4">
               {[
                 { icon: <Shield size={18} className="text-blue-700" />, title: 'Tecnici verificati', desc: 'Ogni professionista è controllato: documenti, assicurazione e referenze.' },

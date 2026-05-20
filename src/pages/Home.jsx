@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white">
+      <section className="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <div className="max-w-3xl">
             <span className="badge bg-orange-500/20 text-orange-300 mb-4">
@@ -61,7 +61,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map(s => (
               <div key={s.label}>
-                <div className="text-3xl font-bold text-blue-800">{s.value}</div>
+                <div className="text-3xl font-bold text-brand-800">{s.value}</div>
                 <div className="text-gray-500 text-sm mt-1">{s.label}</div>
               </div>
             ))}
@@ -94,7 +94,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900">Servizi più richiesti</h2>
               <p className="text-gray-500 mt-1">Soluzioni rapide per le esigenze più comuni</p>
             </div>
-            <Link to="/servizi" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
+            <Link to="/servizi" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
               Vedi tutti <ArrowRight size={16} />
             </Link>
           </div>
@@ -109,7 +109,7 @@ export default function Home() {
 
       {/* Trust section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-blue-800 rounded-3xl p-10 md:p-14 text-white text-center">
+        <div className="bg-brand-800 rounded-3xl p-10 md:p-14 text-white text-center">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center gap-3">
               <Shield size={36} className="text-orange-400" />
@@ -138,7 +138,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900">I nostri migliori tecnici</h2>
               <p className="text-gray-500 mt-1">Professionisti selezionati con le valutazioni più alte</p>
             </div>
-            <Link to="/tecnici" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
+            <Link to="/tecnici" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
               Vedi tutti <ArrowRight size={16} />
             </Link>
           </div>
@@ -158,7 +158,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-gray-900 mt-1">Tutorial video gratuiti</h2>
             <p className="text-gray-500 mt-1">Impara a gestire le emergenze più comuni in casa</p>
           </div>
-          <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
+          <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-brand-800 font-semibold hover:gap-2 transition-all">
             Vedi tutti <ArrowRight size={16} />
           </Link>
         </div>

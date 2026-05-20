@@ -50,7 +50,7 @@ export default function Services() {
         <div className="flex flex-wrap gap-2 mt-4">
           <button
             onClick={() => setActiveCategory('tutti')}
-            className={`badge cursor-pointer transition-colors ${activeCategory === 'tutti' ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`badge cursor-pointer transition-colors ${activeCategory === 'tutti' ? 'bg-brand-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             Tutti
           </button>
@@ -58,7 +58,7 @@ export default function Services() {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`badge cursor-pointer transition-colors ${activeCategory === cat.id ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`badge cursor-pointer transition-colors ${activeCategory === cat.id ? 'bg-brand-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {cat.icon} {cat.label}
             </button>

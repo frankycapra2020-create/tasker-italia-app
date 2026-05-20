@@ -8,11 +8,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 font-bold text-xl text-white mb-3">
-              <div className="flex items-center gap-1 bg-blue-600 text-white rounded-lg p-1.5">
+              <div className="flex items-center gap-1 bg-brand-800 text-white rounded-lg p-1.5">
                 <Wrench size={14} />
                 <Zap size={14} />
               </div>
-              <span>Tasker<span className="text-orange-400">Italia</span></span>
+              <div className="flex flex-col leading-tight">
+                <span>Pronto<span className="text-orange-400">Tecnico</span></span>
+                <span className="text-[10px] font-normal text-gray-400 tracking-tight">Il tuo tecnico di fiducia, sempre vicino a te</span>
+              </div>
             </Link>
             <p className="text-sm leading-relaxed mb-4">
               Il marketplace di fiducia per servizi tecnici professionali. Idraulici ed elettricisti verificati in tutta Italia.
@@ -52,7 +55,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="text-orange-400 flex-shrink-0" />
-                <span>info@taskeritalia.it</span>
+                <span>info@prontotecnico.it</span>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin size={14} className="text-orange-400 flex-shrink-0 mt-0.5" />
@@ -63,7 +66,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-          <p>© 2026 TaskerItalia S.r.l. – P.IVA IT12345678901 – REA MI-1234567</p>
+          <p>© 2026 ProntoTecnico S.r.l. – P.IVA IT12345678901 – REA MI-1234567</p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-white">Privacy Policy</a>
             <a href="#" className="hover:text-white">Termini di servizio</a>
