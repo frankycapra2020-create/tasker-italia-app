@@ -7,7 +7,8 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from || '/'
+  const from = location.state?.from || null
+  const messaggio = location.state?.message || null
 
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPwd, setShowPwd] = useState(false)
@@ -22,7 +23,11 @@ export default function Login() {
     setLoading(true)
     try {
       const user = login(form.email, form.password)
-      navigate(user.ruolo === 'tecnico' ? '/dashboard/tecnico' : '/dashboard/cliente')
+      if (from) {
+        navigate(from)
+      } else {
+        navigate(user.ruolo === 'tecnico' ? '/dashboard/tecnico' : '/dashboard/cliente')
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -46,6 +51,12 @@ export default function Login() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {messaggio && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl px-4 py-3 mb-4 text-sm">
+              <AlertCircle size={16} className="shrink-0 text-blue-500" />
+              {messaggio}
+            </div>
+          )}
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">
               <AlertCircle size={16} className="shrink-0" />

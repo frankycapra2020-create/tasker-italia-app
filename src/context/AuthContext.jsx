@@ -59,13 +59,25 @@ export function AuthProvider({ children }) {
     return session
   }
 
+  const updateUser = (updates) => {
+    const updated = { ...user, ...updates }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(updated))
+    const users = getUsers()
+    const idx = users.findIndex(u => u.id === user.id)
+    if (idx >= 0) {
+      users[idx] = { ...users[idx], ...updates }
+      localStorage.setItem(USERS_KEY, JSON.stringify(users))
+    }
+    setUser(updated)
+  }
+
   const logout = () => {
     localStorage.removeItem(SESSION_KEY)
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

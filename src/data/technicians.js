@@ -18,6 +18,7 @@ export const technicians = [
     languages: ['Italiano', 'Inglese'],
     certifications: ['Cert. Termoidraulica UNI', 'Patentino gas'],
     responseTime: '< 1 ora',
+    raggioOperativo: 40,
   },
   {
     id: 2,
@@ -38,6 +39,7 @@ export const technicians = [
     languages: ['Italiano'],
     certifications: ['Abilitazione D.M. 37/08', 'Certificazione KNX', 'Dichiarazione conformità'],
     responseTime: '< 2 ore',
+    raggioOperativo: 50,
   },
   {
     id: 3,
@@ -58,6 +60,7 @@ export const technicians = [
     languages: ['Italiano', 'Francese'],
     certifications: ['Cert. F-GAS cat. I', 'RINA caldaie a condensazione'],
     responseTime: '< 3 ore',
+    raggioOperativo: 60,
   },
   {
     id: 4,
@@ -78,6 +81,7 @@ export const technicians = [
     languages: ['Italiano'],
     certifications: ['Abilitazione D.M. 37/08', 'UNI 11528'],
     responseTime: '< 2 ore',
+    raggioOperativo: 80,
   },
   {
     id: 5,
@@ -98,6 +102,7 @@ export const technicians = [
     languages: ['Italiano', 'Tedesco'],
     certifications: ['GSE - Operatore fotovoltaico', 'Abilitazione D.M. 37/08'],
     responseTime: '< 4 ore',
+    raggioOperativo: 45,
   },
   {
     id: 6,
@@ -118,5 +123,6 @@ export const technicians = [
     languages: ['Italiano'],
     certifications: ['Patentino gas 3° grado', 'Manutentore caldaie UNI 11528'],
     responseTime: '< 2 ore',
+    raggioOperativo: 55,
   },
 ]

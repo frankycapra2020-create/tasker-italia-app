@@ -4,9 +4,10 @@ import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
 import { useChat } from '../context/ChatContext'
 import { useNotifiche } from '../hooks/useNotifiche'
+import { useLocation } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard'
 import ChatWindow from '../components/ChatWindow'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell } from 'lucide-react'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -48,12 +49,20 @@ const SPEC_ICON = {
 const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi']
 
 export default function DashboardTecnico() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
+  const location = useLocation()
+  const erroreAccesso = location.state?.errore || null
   const { getPending, getByTecnico, updateBooking } = useBooking()
   const { getByBookingIds, addReply, getAvgRating } = useReview()
   const { getUnread, getLastMessage, getTotalUnread } = useChat()
   const [tab, setTab] = useState(0)
   const [chatBookingId, setChatBookingId] = useState(null)
+  const [raggioKm, setRaggioKm] = useState(user.raggioOperativo ?? 50)
+
+  const handleRaggioChange = (val) => {
+    setRaggioKm(val)
+    updateUser({ raggioOperativo: val })
+  }
 
   const pendingAll = getPending().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const miei = getByTecnico(user.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -98,6 +107,13 @@ export default function DashboardTecnico() {
           onClose={() => setChatBookingId(null)}
         />
       )}
+      {erroreAccesso && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 mb-6 text-sm">
+          <AlertCircle size={18} className="shrink-0" />
+          <span className="font-medium">{erroreAccesso}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
@@ -424,6 +440,32 @@ export default function DashboardTecnico() {
                   {avgFromReviews !== null ? `${avgFromReviews.toFixed(1)} (${myReviews.length})` : 'Nessuna ancora'}
                 </span>
               </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                  <Navigation size={15} className="text-orange-500" />
+                  Raggio operativo
+                </span>
+                <span className="font-bold text-orange-600 text-sm">{raggioKm} km</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="100"
+                step="5"
+                value={raggioKm}
+                onChange={e => handleRaggioChange(Number(e.target.value))}
+                className="w-full accent-orange-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>5 km</span>
+                <span>100 km</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                Accetti lavori entro <span className="font-semibold text-gray-600">{raggioKm} km</span> dalla tua zona operativa.
+              </p>
             </div>
           </div>
 

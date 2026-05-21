@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useGeo } from '../context/GeoContext'
 import { technicians } from '../data/technicians'
+import { getCittaCoords, haversineKm, formatKm } from '../utils/geo'
 import {
   Wrench, Zap, Thermometer, Wind, Star, MapPin, Clock,
   ChevronLeft, ChevronRight, CheckCircle, AlertCircle,
@@ -246,9 +247,28 @@ export default function Booking() {
     }
   }, [geo.address])
 
+  // Guard: redirect se non loggato o tecnico
+  if (!user) {
+    return <Navigate to="/accedi" state={{ from: '/preventivo', message: 'Devi accedere per richiedere un preventivo.' }} replace />
+  }
+  if (user.ruolo === 'tecnico') {
+    return <Navigate to="/dashboard/tecnico" state={{ errore: 'Solo i clienti possono richiedere preventivi.' }} replace />
+  }
+
   const catInfo = CATEGORIE.find(c => c.id === categoria)
+
+  // Coordinate della città del cliente (per filtro raggio)
+  const clienteCoords = getCittaCoords(citta)
+
   const tecniciFiltrati = catInfo
-    ? technicians.filter(t => t.specializations.some(s => catInfo.keywords.includes(s)))
+    ? technicians.filter(t => {
+        if (!t.specializations.some(s => catInfo.keywords.includes(s))) return false
+        if (clienteCoords) {
+          const dist = haversineKm(clienteCoords.lat, clienteCoords.lng, t.lat, t.lng)
+          return dist <= t.raggioOperativo
+        }
+        return true
+      })
     : []
   const tariffa = tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
   const supplemento = urgenza === 'urgente' ? 30 : 0
@@ -608,10 +628,21 @@ export default function Booking() {
             {/* Scelta tecnico */}
             <div className="card p-6">
               <h2 className="font-bold text-gray-900 mb-1">Scegli il tecnico</h2>
-              <p className="text-sm text-gray-500 mb-4">Tecnici disponibili per {catInfo?.label}</p>
+              <p className="text-sm text-gray-500 mb-2">Tecnici disponibili per {catInfo?.label}</p>
+              {clienteCoords && (
+                <div className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-3">
+                  <Navigation size={12} className="shrink-0" />
+                  Mostrando tecnici che operano vicino a <span className="font-semibold ml-1">{citta}</span>
+                </div>
+              )}
               {errors.tecnico && <ErrMsg msg={errors.tecnico} />}
               {tecniciFiltrati.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-8">Nessun tecnico disponibile per questa categoria al momento.</p>
+                <div className="text-center py-8 space-y-2">
+                  <p className="text-sm text-gray-500 font-medium">Nessun tecnico disponibile nel tuo raggio.</p>
+                  {clienteCoords && (
+                    <p className="text-xs text-gray-400">Prova con una città diversa o verifica di aver scritto correttamente.</p>
+                  )}
+                </div>
               )}
               <div className="space-y-3">
                 {tecniciFiltrati.map(t => (
@@ -638,13 +669,19 @@ export default function Booking() {
                             €{t.pricePerHour}/ora
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Star size={11} className="text-yellow-400" fill="currentColor" />
                             {t.rating} ({t.reviews})
                           </span>
                           <span className="flex items-center gap-1"><MapPin size={11} />{t.location.split(',')[0]}</span>
                           <span className="flex items-center gap-1"><Clock size={11} />{t.responseTime}</span>
+                          {clienteCoords && (
+                            <span className="flex items-center gap-1 text-blue-600 font-medium">
+                              <Navigation size={11} />
+                              {formatKm(haversineKm(clienteCoords.lat, clienteCoords.lng, t.lat, t.lng))}
+                            </span>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
                           {t.specializations.map(s => (
