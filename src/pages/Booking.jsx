@@ -248,8 +248,11 @@ export default function Booking() {
   // ── Validazione ────────────────────────────────────────────────────────────
   const validateStep1 = () => {
     const e = {}
-    if (!categoria) e.categoria = 'Seleziona una categoria'
-    if (!servizio) e.servizio = 'Seleziona il tipo di intervento'
+    if (!categoria) {
+      e.categoria = 'Seleziona una categoria per continuare'
+    } else if (!servizio) {
+      e.servizio = 'Seleziona il tipo di intervento'
+    }
     if (!indirizzo.trim()) e.indirizzo = 'Campo obbligatorio'
     if (!citta.trim()) e.citta = 'Campo obbligatorio'
     return e
@@ -275,14 +278,21 @@ export default function Booking() {
   }
 
   // ── Navigazione ────────────────────────────────────────────────────────────
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+
   const avanti = () => {
     const errs = step === 1 ? validateStep1() : step === 2 ? validateStep2() : {}
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      scrollTop()
+      return
+    }
     setErrors({})
     setStep(s => s + 1)
+    scrollTop()
   }
 
-  const indietro = () => { setErrors({}); setStep(s => s - 1) }
+  const indietro = () => { setErrors({}); setStep(s => s - 1); scrollTop() }
 
   const handleCategoria = (id) => {
     setCategoria(id)
