@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
-import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, PlayCircle, ChevronRight } from 'lucide-react'
+import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, Quote } from 'lucide-react'
 import { services } from '../data/services'
 import { technicians } from '../data/technicians'
 import { tutorials } from '../data/tutorials'
 import ServiceCard from '../components/ServiceCard'
 import TechnicianCard from '../components/TechnicianCard'
 import VideoCard from '../components/VideoCard'
+import { useReview } from '../context/ReviewContext'
+import { StarsDisplay } from '../components/ReviewCard'
 
 const stats = [
   { value: '2.400+', label: 'Tecnici certificati' },
@@ -21,7 +23,70 @@ const serviceCategories = [
   { icon: <Wind size={28} />, title: 'Climatizzazione', desc: 'Installazione, gas F-GAS', color: 'bg-cyan-50 text-cyan-700', to: '/servizi' },
 ]
 
+const FALLBACK_REVIEWS = [
+  {
+    id: 'demo1',
+    clienteNome: 'Marco R.',
+    stelle: 5,
+    commento: 'Lavoro eccellente! Il tecnico è arrivato puntuale e ha risolto il problema in meno di un\'ora. Lo consiglio a tutti.',
+    servizio: 'Perdita tubo cucina',
+    tecnicoNome: 'Luca Ferretti',
+    createdAt: '2024-03-10T10:00:00Z',
+  },
+  {
+    id: 'demo2',
+    clienteNome: 'Sofia M.',
+    stelle: 5,
+    commento: 'Ottimo professionista. Ha installato l\'impianto elettrico in modo impeccabile, tutto ordinato e in regola.',
+    servizio: 'Impianto elettrico',
+    tecnicoNome: 'Andrea Ricci',
+    createdAt: '2024-03-05T14:00:00Z',
+  },
+  {
+    id: 'demo3',
+    clienteNome: 'Giovanni B.',
+    stelle: 5,
+    commento: 'Caldaia riparata in tempo record. Prezzi onesti, lavoro garantito e professionalità eccezionale.',
+    servizio: 'Riparazione caldaia',
+    tecnicoNome: 'Marco Bianchi',
+    createdAt: '2024-02-28T09:00:00Z',
+  },
+]
+
+function ReviewWidget({ review }) {
+  const initials = review.clienteNome
+    ?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '??'
+  const fmt = (str) =>
+    new Date(str).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
+      <Quote size={20} className="text-blue-200" />
+      <p className="text-gray-700 text-sm leading-relaxed flex-1">"{review.commento}"</p>
+      <div>
+        <StarsDisplay value={review.stelle} size={14} />
+        {review.servizio && (
+          <span className="text-xs text-gray-400 mt-1 block">{review.servizio}</span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+        <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-700 shrink-0">
+          {initials}
+        </div>
+        <div>
+          <div className="font-semibold text-sm text-gray-800">{review.clienteNome}</div>
+          <div className="text-xs text-gray-400">{fmt(review.createdAt)}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
+  const { getTopReviews } = useReview()
+  const topReviews = getTopReviews(3)
+  const displayReviews = topReviews.length >= 2 ? topReviews : FALLBACK_REVIEWS
+
   return (
     <div>
       {/* Hero */}
@@ -148,27 +213,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Safety Tutorials Preview */}
+      {/* Reviews Widget */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <span className="badge bg-red-100 text-red-700 mb-2">
-              <Shield size={11} /> Sicurezza domestica
-            </span>
-            <h2 className="text-3xl font-bold text-gray-900 mt-1">Tutorial video gratuiti</h2>
-            <p className="text-gray-500 mt-1">Impara a gestire le emergenze più comuni in casa</p>
+        <div className="text-center mb-10">
+          <span className="badge bg-yellow-100 text-yellow-700 mb-3">
+            <Star size={11} fill="currentColor" /> Recensioni verificate
+          </span>
+          <h2 className="text-3xl font-bold text-gray-900 mt-2">Cosa dicono i nostri clienti</h2>
+          <p className="text-gray-500 mt-2">Recensioni reali da clienti che hanno completato un intervento</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayReviews.map(r => <ReviewWidget key={r.id} review={r} />)}
+        </div>
+        <div className="text-center mt-8">
+          <Link to="/tecnici" className="btn-secondary">
+            Leggi tutte le recensioni
+          </Link>
+        </div>
+      </section>
+
+      {/* Safety Tutorials Preview */}
+      <section className="bg-gray-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <span className="badge bg-red-100 text-red-700 mb-2">
+                <Shield size={11} /> Sicurezza domestica
+              </span>
+              <h2 className="text-3xl font-bold text-gray-900 mt-1">Tutorial video gratuiti</h2>
+              <p className="text-gray-500 mt-1">Impara a gestire le emergenze più comuni in casa</p>
+            </div>
+            <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
+              Vedi tutti <ArrowRight size={16} />
+            </Link>
           </div>
-          <Link to="/tutorial" className="hidden md:flex items-center gap-1 text-blue-800 font-semibold hover:gap-2 transition-all">
-            Vedi tutti <ArrowRight size={16} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tutorials.slice(0, 3).map(t => <VideoCard key={t.id} tutorial={t} />)}
-        </div>
-        <div className="text-center mt-10">
-          <Link to="/tutorial" className="btn-primary">
-            Esplora tutti i tutorial gratuiti
-          </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tutorials.slice(0, 3).map(t => <VideoCard key={t.id} tutorial={t} />)}
+          </div>
+          <div className="text-center mt-10">
+            <Link to="/tutorial" className="btn-primary">
+              Esplora tutti i tutorial gratuiti
+            </Link>
+          </div>
         </div>
       </section>
     </div>

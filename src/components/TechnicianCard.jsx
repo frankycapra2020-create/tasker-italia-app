@@ -1,8 +1,30 @@
 import { MapPin, Clock, Briefcase, Shield, CheckCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import StarRating from './StarRating'
+import { useReview } from '../context/ReviewContext'
+import { StarsDisplay } from './ReviewCard'
+
+function getBadges(tech, avgRating, reviewCount) {
+  const rating = avgRating ?? tech.rating
+  const count = reviewCount > 0 ? reviewCount : tech.reviews
+  const out = []
+  if (tech.certified)
+    out.push({ label: 'Verificato', cls: 'bg-blue-50 text-blue-700', icon: '✓' })
+  if (rating >= 4.8 && count >= 5)
+    out.push({ label: 'Top Rated', cls: 'bg-amber-50 text-amber-700', icon: '⭐' })
+  if (tech.responseTime?.match(/< [12] /))
+    out.push({ label: 'Risposta Rapida', cls: 'bg-green-50 text-green-700', icon: '⚡' })
+  return out
+}
 
 export default function TechnicianCard({ tech }) {
+  const { getByTecnico } = useReview()
+  const reviews = getByTecnico(tech.id)
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((s, r) => s + r.stelle, 0) / reviews.length
+    : tech.rating
+  const totalReviews = reviews.length > 0 ? reviews.length : tech.reviews
+  const badges = getBadges(tech, avgRating, reviews.length)
+
   return (
     <div className="card p-6 flex flex-col gap-4">
       <div className="flex items-start gap-4">
@@ -10,16 +32,13 @@ export default function TechnicianCard({ tech }) {
           {tech.avatar}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <h3 className="font-bold text-gray-900">{tech.name}</h3>
-            {tech.certified && (
-              <span className="badge bg-blue-50 text-blue-700">
-                <Shield size={10} /> Verificato
-              </span>
-            )}
-            <span className={`badge ${tech.available ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              {tech.available ? '● Disponibile' : '● Non disponibile'}
-            </span>
+          </div>
+          <div className="flex flex-wrap gap-1 mb-1">
+            {badges.map(b => (
+              <span key={b.label} className={`badge text-xs ${b.cls}`}>{b.icon} {b.label}</span>
+            ))}
           </div>
           <div className="flex flex-wrap gap-1 mt-1">
             {tech.specializations.map(s => (
@@ -32,9 +51,19 @@ export default function TechnicianCard({ tech }) {
         </div>
       </div>
 
-      <StarRating rating={tech.rating} count={tech.reviews} />
+      <div className="flex items-center gap-2">
+        <StarsDisplay value={avgRating} />
+        <span className="text-sm font-semibold text-gray-800">{avgRating.toFixed(1)}</span>
+        <span className="text-xs text-gray-400">({totalReviews})</span>
+        {!tech.available && (
+          <span className="badge bg-gray-100 text-gray-500 text-xs ml-auto">Limitata disponibilità</span>
+        )}
+        {tech.available && (
+          <span className="badge bg-green-100 text-green-700 text-xs ml-auto">● Disponibile</span>
+        )}
+      </div>
 
-      <p className="text-gray-500 text-sm leading-relaxed">{tech.bio}</p>
+      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">{tech.bio}</p>
 
       <div className="grid grid-cols-3 gap-3 text-center">
         <div className="bg-gray-50 rounded-xl p-3">
@@ -63,9 +92,14 @@ export default function TechnicianCard({ tech }) {
         <span className="flex items-center gap-1 text-xs text-gray-400">
           <Clock size={12} /> Risponde {tech.responseTime}
         </span>
-        <Link to="/preventivo" className="btn-primary text-sm py-2 px-4">
-          Contatta
-        </Link>
+        <div className="flex gap-2">
+          <Link to={`/tecnici/${tech.id}`} className="btn-secondary text-sm py-2 px-3">
+            Profilo
+          </Link>
+          <Link to="/preventivo" className="btn-primary text-sm py-2 px-4">
+            Prenota
+          </Link>
+        </div>
       </div>
     </div>
   )

@@ -2,14 +2,29 @@ import { useState } from 'react'
 import { Search, Users } from 'lucide-react'
 import { technicians } from '../data/technicians'
 import TechnicianCard from '../components/TechnicianCard'
+import { useReview } from '../context/ReviewContext'
 
 const specializations = ['Tutti', 'Idraulica', 'Elettricità', 'Caldaie', 'Climatizzazione', 'Fotovoltaico', 'Domotica']
 
+const STAR_FILTERS = [
+  { v: 0, label: 'Tutte le stelle' },
+  { v: 4, label: '4★+' },
+  { v: 4.5, label: '4.5★+' },
+  { v: 5, label: '5★' },
+]
+
 export default function Technicians() {
+  const { getAvgRating } = useReview()
   const [search, setSearch] = useState('')
   const [activeSpec, setActiveSpec] = useState('Tutti')
   const [onlyAvailable, setOnlyAvailable] = useState(false)
   const [sortBy, setSortBy] = useState('rating')
+  const [minRating, setMinRating] = useState(0)
+
+  const liveRating = (t) => {
+    const avg = getAvgRating(t.id)
+    return avg !== null ? avg : t.rating
+  }
 
   const filtered = technicians
     .filter(t => {
@@ -18,10 +33,14 @@ export default function Technicians() {
         t.location.toLowerCase().includes(search.toLowerCase()) ||
         t.specializations.some(s => s.toLowerCase().includes(search.toLowerCase()))
       const matchAvail = !onlyAvailable || t.available
-      return matchSpec && matchSearch && matchAvail
+      const rating = liveRating(t)
+      const matchRating = minRating === 0
+        ? true
+        : minRating === 5 ? rating >= 4.95 : rating >= minRating
+      return matchSpec && matchSearch && matchAvail && matchRating
     })
     .sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating
+      if (sortBy === 'rating') return liveRating(b) - liveRating(a)
       if (sortBy === 'price') return a.pricePerHour - b.pricePerHour
       if (sortBy === 'jobs') return b.completedJobs - a.completedJobs
       return 0
@@ -74,6 +93,19 @@ export default function Technicians() {
               className={`badge cursor-pointer transition-colors ${activeSpec === spec ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {spec}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+          <span className="text-xs font-medium text-gray-500 flex items-center mr-1">Valutazione minima:</span>
+          {STAR_FILTERS.map(({ v, label }) => (
+            <button
+              key={v}
+              onClick={() => setMinRating(v)}
+              className={`badge cursor-pointer transition-colors ${minRating === v ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              {label}
             </button>
           ))}
         </div>

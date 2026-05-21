@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
-import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle } from 'lucide-react'
+import { useReview } from '../context/ReviewContext'
+import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle, Image } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -17,9 +19,59 @@ const STATO_STYLE = {
   annullata:   { badge: 'bg-red-100 text-red-700',      label: 'Annullata' },
 }
 
+function StarSelector({ value, onChange }) {
+  const [hover, setHover] = useState(0)
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(n => (
+        <button
+          key={n}
+          type="button"
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+          onClick={() => onChange(n)}
+          className="transition-transform hover:scale-110"
+        >
+          <Star
+            size={28}
+            className={n <= (hover || value) ? 'text-yellow-400' : 'text-gray-200'}
+            fill={n <= (hover || value) ? 'currentColor' : 'none'}
+          />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const compressImage = (file) => new Promise((resolve) => {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      const MAX = 400
+      let w = img.width, h = img.height
+      if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX }
+      else if (h > MAX) { w = Math.round(w * MAX / h); h = MAX }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.75))
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+})
+
 export default function DashboardCliente() {
   const { user, logout } = useAuth()
   const { getByCliente, updateBooking } = useBooking()
+  const { addReview, hasReviewed } = useReview()
+
+  const [reviewOpenId, setReviewOpenId] = useState(null)
+  const [reviewStelle, setReviewStelle] = useState(0)
+  const [reviewCommento, setReviewCommento] = useState('')
+  const [reviewFoto, setReviewFoto] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   const prenotazioni = getByCliente(user.id).sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -34,6 +86,33 @@ export default function DashboardCliente() {
     if (confirm('Vuoi annullare questa prenotazione?')) {
       updateBooking(id, { stato: 'annullata' })
     }
+  }
+
+  const openReview = (id) => {
+    setReviewOpenId(id)
+    setReviewStelle(0)
+    setReviewCommento('')
+    setReviewFoto(null)
+  }
+
+  const submitReview = async (booking) => {
+    if (reviewStelle === 0) return
+    setReviewLoading(true)
+    let fotoUrl = null
+    if (reviewFoto) fotoUrl = await compressImage(reviewFoto)
+    addReview({
+      bookingId: booking.id,
+      clienteId: user.id,
+      clienteNome: `${user.nome} ${user.cognome}`,
+      tecnicoId: booking.tecnicoId,
+      tecnicoNome: booking.tecnicoNome,
+      servizio: booking.servizio,
+      stelle: reviewStelle,
+      commento: reviewCommento.trim(),
+      fotoUrl,
+    })
+    setReviewOpenId(null)
+    setReviewLoading(false)
   }
 
   return (
@@ -95,6 +174,9 @@ export default function DashboardCliente() {
                 {prenotazioni.map(b => {
                   const stato = STATO_STYLE[b.stato] ?? { badge: 'bg-gray-100 text-gray-600', label: b.stato }
                   const cancellabile = b.stato === 'in_attesa'
+                  const puoRecensire = b.stato === 'completata' && !hasReviewed(b.id)
+                  const haRecensito = b.stato === 'completata' && hasReviewed(b.id)
+                  const reviewAperta = reviewOpenId === b.id
                   return (
                     <div key={b.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <div className="flex items-start justify-between gap-3">
@@ -119,14 +201,81 @@ export default function DashboardCliente() {
                           <div className="text-xs text-gray-400 mt-0.5">{b.oreStimate}h · {b.id}</div>
                         </div>
                       </div>
-                      {cancellabile && (
-                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
-                          <button
-                            onClick={() => annullaPrenotazione(b.id)}
-                            className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
-                          >
-                            <XCircle size={13} /> Annulla prenotazione
-                          </button>
+
+                      {/* Actions */}
+                      {(cancellabile || puoRecensire || haRecensito) && (
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 flex-wrap">
+                          {cancellabile && (
+                            <button
+                              onClick={() => annullaPrenotazione(b.id)}
+                              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
+                            >
+                              <XCircle size={13} /> Annulla prenotazione
+                            </button>
+                          )}
+                          {puoRecensire && !reviewAperta && (
+                            <button
+                              onClick={() => openReview(b.id)}
+                              className="flex items-center gap-1.5 text-xs text-yellow-600 hover:text-yellow-800 font-medium transition-colors"
+                            >
+                              <Star size={13} fill="currentColor" /> Lascia una recensione
+                            </button>
+                          )}
+                          {haRecensito && (
+                            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                              <CheckCircle size={13} /> Recensione inviata
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Form recensione inline */}
+                      {reviewAperta && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
+                          <p className="text-sm font-semibold text-gray-800">Valuta il lavoro di {b.tecnicoNome}</p>
+                          <div>
+                            <StarSelector value={reviewStelle} onChange={setReviewStelle} />
+                            {reviewStelle > 0 && (
+                              <span className="text-xs text-gray-500 mt-1 block">
+                                {['', 'Pessimo', 'Scarso', 'Discreto', 'Buono', 'Eccellente'][reviewStelle]}
+                              </span>
+                            )}
+                          </div>
+                          <textarea
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            rows={3}
+                            value={reviewCommento}
+                            onChange={e => setReviewCommento(e.target.value)}
+                            placeholder="Descrivi la tua esperienza (opzionale)..."
+                          />
+                          <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer w-fit">
+                            <Image size={14} />
+                            <span>Aggiungi foto (opzionale)</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => setReviewFoto(e.target.files[0] ?? null)}
+                            />
+                          </label>
+                          {reviewFoto && (
+                            <p className="text-xs text-green-600">{reviewFoto.name}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => submitReview(b)}
+                              disabled={reviewStelle === 0 || reviewLoading}
+                              className="btn-primary text-xs py-2 px-5 disabled:opacity-50"
+                            >
+                              {reviewLoading ? 'Invio...' : 'Pubblica recensione'}
+                            </button>
+                            <button
+                              onClick={() => setReviewOpenId(null)}
+                              className="btn-secondary text-xs py-2 px-4"
+                            >
+                              Annulla
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

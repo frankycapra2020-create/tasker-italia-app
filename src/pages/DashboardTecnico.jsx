@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle } from 'lucide-react'
+import { useReview } from '../context/ReviewContext'
+import ReviewCard from '../components/ReviewCard'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -32,19 +34,28 @@ const SPEC_ICON = {
   'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
 }
 
-const TABS = ['Nuove richieste', 'Miei interventi']
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni']
 
 export default function DashboardTecnico() {
   const { user, logout } = useAuth()
   const { getPending, getByTecnico, updateBooking } = useBooking()
+  const { getByBookingIds, addReply, getAvgRating } = useReview()
   const [tab, setTab] = useState(0)
 
   const pendingAll = getPending().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const miei = getByTecnico(user.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
+  const myBookingIds = miei.map(b => b.id)
+  const myReviews = getByBookingIds(myBookingIds).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
   const completati = miei.filter(b => b.stato === 'completata')
   const guadagni = completati.reduce((sum, b) => sum + (b.totaleStimato ?? 0), 0)
   const inCorso = miei.filter(b => b.stato === 'confermata').length
+
+  const avgRating = getAvgRating(null)
+  const avgFromReviews = myReviews.length > 0
+    ? myReviews.reduce((s, r) => s + r.stelle, 0) / myReviews.length
+    : null
 
   const accetta = (id) => updateBooking(id, { stato: 'confermata', confermatoDa: user.id })
   const rifiuta = (id) => {
@@ -125,6 +136,9 @@ export default function DashboardTecnico() {
                   {t}
                   {i === 0 && pendingAll.length > 0 && (
                     <span className="ml-1.5 badge bg-red-100 text-red-600 text-xs">{pendingAll.length}</span>
+                  )}
+                  {i === 2 && myReviews.length > 0 && (
+                    <span className="ml-1.5 badge bg-yellow-100 text-yellow-700 text-xs">{myReviews.length}</span>
                   )}
                   {tab === i && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-700 rounded-full" />
@@ -252,6 +266,36 @@ export default function DashboardTecnico() {
                   )}
                 </>
               )}
+
+              {/* Tab 2: Recensioni */}
+              {tab === 2 && (
+                <>
+                  {myReviews.length === 0 ? (
+                    <div className="text-center py-14">
+                      <MessageSquare size={36} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-400 font-medium">Nessuna recensione ancora</p>
+                      <p className="text-gray-400 text-sm mt-1">Le recensioni dei clienti appariranno qui dopo i lavori completati</p>
+                    </div>
+                  ) : (
+                    <>
+                      {avgFromReviews !== null && (
+                        <div className="flex items-center gap-3 mb-5 p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                          <Star size={24} className="text-yellow-400" fill="currentColor" />
+                          <div>
+                            <span className="text-2xl font-bold text-gray-900">{avgFromReviews.toFixed(1)}</span>
+                            <span className="text-gray-500 text-sm ml-2">media su {myReviews.length} {myReviews.length === 1 ? 'recensione' : 'recensioni'}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-4">
+                        {myReviews.map(r => (
+                          <ReviewCard key={r.id} review={r} onReply={addReply} canReply={true} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -283,8 +327,8 @@ export default function DashboardTecnico() {
               <div className="flex items-center gap-2 text-gray-600">
                 <Star size={16} className="text-yellow-500" />
                 <span className="font-medium">Valutazione:</span>
-                <span className="text-gray-400">
-                  {completati.length > 0 ? '4.8 (demo)' : 'Nessuna ancora'}
+                <span className={avgFromReviews !== null ? 'font-semibold text-gray-800' : 'text-gray-400'}>
+                  {avgFromReviews !== null ? `${avgFromReviews.toFixed(1)} (${myReviews.length})` : 'Nessuna ancora'}
                 </span>
               </div>
             </div>
