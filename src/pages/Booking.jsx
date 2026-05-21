@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
+import { useGeo } from '../context/GeoContext'
 import { technicians } from '../data/technicians'
 import {
   Wrench, Zap, Thermometer, Wind, Star, MapPin, Clock,
   ChevronLeft, ChevronRight, CheckCircle, AlertCircle,
-  Calendar, Phone,
+  Calendar, Phone, Navigation, Loader,
 } from 'lucide-react'
 
 // ─── Dati di configurazione ──────────────────────────────────────────────────
@@ -210,6 +211,7 @@ function Calendario({ tecnicoId, selected, onSelect, getOccupied }) {
 export default function Booking() {
   const { user } = useAuth()
   const { addBooking, getOccupied } = useBooking()
+  const geo = useGeo()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
@@ -235,6 +237,14 @@ export default function Booking() {
   const [emailCliente, setEmailCliente] = useState(user?.email || '')
   const [telefono, setTelefono] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
+
+  // Auto-fill indirizzo da geolocalizzazione
+  useEffect(() => {
+    if (geo.address && !indirizzo && !citta) {
+      if (geo.address.via) setIndirizzo(geo.address.via)
+      if (geo.address.citta) setCitta(geo.address.citta)
+    }
+  }, [geo.address])
 
   const catInfo = CATEGORIE.find(c => c.id === categoria)
   const tecniciFiltrati = catInfo
@@ -520,7 +530,31 @@ export default function Booking() {
 
             {/* Indirizzo */}
             <div className="card p-6 space-y-4">
-              <h2 className="font-bold text-gray-900">Dove si trova il problema?</h2>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="font-bold text-gray-900">Dove si trova il problema?</h2>
+                {geo.status === 'idle' && (
+                  <button
+                    type="button"
+                    onClick={geo.requestLocation}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                  >
+                    <Navigation size={12} /> Usa la mia posizione
+                  </button>
+                )}
+                {geo.status === 'loading' && (
+                  <span className="flex items-center gap-1.5 text-xs text-blue-600 font-medium">
+                    <Loader size={12} className="animate-spin" /> Rilevamento…
+                  </span>
+                )}
+                {geo.status === 'granted' && (
+                  <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                    <CheckCircle size={12} /> Posizione rilevata
+                  </span>
+                )}
+                {geo.status === 'denied' && (
+                  <span className="text-xs text-red-500 font-medium">Accesso negato</span>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Via / Indirizzo *</label>

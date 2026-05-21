@@ -1,7 +1,8 @@
-import { MapPin, Clock, Briefcase, Shield, CheckCircle } from 'lucide-react'
+import { MapPin, Clock, Briefcase, Shield, CheckCircle, Navigation } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useReview } from '../context/ReviewContext'
 import { StarsDisplay } from './ReviewCard'
+import { formatKm } from '../utils/geo'
 
 function getBadges(tech, avgRating, reviewCount) {
   const rating = avgRating ?? tech.rating
@@ -16,7 +17,7 @@ function getBadges(tech, avgRating, reviewCount) {
   return out
 }
 
-export default function TechnicianCard({ tech }) {
+export default function TechnicianCard({ tech, distanzaKm }) {
   const { getByTecnico } = useReview()
   const reviews = getByTecnico(tech.id)
   const avgRating = reviews.length > 0
@@ -45,8 +46,15 @@ export default function TechnicianCard({ tech }) {
               <span key={s} className="badge bg-gray-100 text-gray-600">{s}</span>
             ))}
           </div>
-          <div className="flex items-center gap-1 mt-1.5 text-sm text-gray-500">
-            <MapPin size={13} /> {tech.location}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="flex items-center gap-1 text-sm text-gray-500">
+              <MapPin size={13} /> {tech.location}
+            </span>
+            {distanzaKm !== null && distanzaKm !== undefined && (
+              <span className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                <Navigation size={10} /> {formatKm(distanzaKm)}
+              </span>
+            )}
           </div>
         </div>
       </div>

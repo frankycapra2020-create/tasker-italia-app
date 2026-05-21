@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import { BookingProvider } from './context/BookingContext'
 import { ReviewProvider } from './context/ReviewContext'
 import { ChatProvider } from './context/ChatContext'
+import { GeoProvider } from './context/GeoContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
@@ -24,6 +25,7 @@ function App() {
         <BookingProvider>
           <ReviewProvider>
             <ChatProvider>
+            <GeoProvider>
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-1">
@@ -56,6 +58,7 @@ function App() {
               </main>
               <Footer />
             </div>
+            </GeoProvider>
             </ChatProvider>
           </ReviewProvider>
         </BookingProvider>

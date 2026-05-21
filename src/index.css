@@ -1,5 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* Leaflet popup reset — prevent body font override */
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  padding: 4px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+.leaflet-popup-content {
+  margin: 12px !important;
+}
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+/* Pulse animation per posizione utente */
+@keyframes geo-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.6); opacity: 0.15; }
+}
+.geo-pulse-ring {
+  animation: geo-pulse 2s ease-in-out infinite;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
