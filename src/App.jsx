@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { BookingProvider } from './context/BookingContext'
 import { ReviewProvider } from './context/ReviewContext'
+import { ChatProvider } from './context/ChatContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
@@ -22,6 +23,7 @@ function App() {
       <AuthProvider>
         <BookingProvider>
           <ReviewProvider>
+            <ChatProvider>
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-1">
@@ -54,6 +56,7 @@ function App() {
               </main>
               <Footer />
             </div>
+            </ChatProvider>
           </ReviewProvider>
         </BookingProvider>
       </AuthProvider>

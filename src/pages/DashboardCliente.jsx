@@ -3,13 +3,25 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
-import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle, Image } from 'lucide-react'
+import { useChat } from '../context/ChatContext'
+import ChatWindow from '../components/ChatWindow'
+import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle, Image, MessageSquare } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
   if (!str) return ''
   const [y, m, d] = str.split('-')
   return `${parseInt(d)} ${MESI[parseInt(m) - 1]} ${y}`
+}
+
+function formatMsgTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const today = new Date()
+  if (d.toDateString() === today.toDateString()) {
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  }
+  return `${d.getDate()} ${MESI[d.getMonth()]}`
 }
 
 const STATO_STYLE = {
@@ -66,16 +78,22 @@ export default function DashboardCliente() {
   const { user, logout } = useAuth()
   const { getByCliente, updateBooking } = useBooking()
   const { addReview, hasReviewed } = useReview()
+  const { getUnread, getLastMessage, getTotalUnread } = useChat()
 
   const [reviewOpenId, setReviewOpenId] = useState(null)
   const [reviewStelle, setReviewStelle] = useState(0)
   const [reviewCommento, setReviewCommento] = useState('')
   const [reviewFoto, setReviewFoto] = useState(null)
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [chatBookingId, setChatBookingId] = useState(null)
 
   const prenotazioni = getByCliente(user.id).sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
   )
+
+  // Only bookings with an assigned tech can have a chat
+  const chatBookings = prenotazioni.filter(b => b.confermatoDa)
+  const totalUnread = getTotalUnread(chatBookings.map(b => b.id), user.id)
 
   const totali = prenotazioni.length
   const inAttesa = prenotazioni.filter(b => b.stato === 'in_attesa').length
@@ -115,8 +133,26 @@ export default function DashboardCliente() {
     setReviewLoading(false)
   }
 
+  const chatBooking = chatBookingId ? prenotazioni.find(b => b.id === chatBookingId) : null
+
+  // Sort chat bookings by last message time desc
+  const sortedChatBookings = [...chatBookings].sort((a, b) => {
+    const la = getLastMessage(a.id)?.createdAt || a.createdAt
+    const lb = getLastMessage(b.id)?.createdAt || b.createdAt
+    return new Date(lb) - new Date(la)
+  })
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Chat window overlay */}
+      {chatBooking && (
+        <ChatWindow
+          booking={chatBooking}
+          currentUser={user}
+          onClose={() => setChatBookingId(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -177,6 +213,8 @@ export default function DashboardCliente() {
                   const puoRecensire = b.stato === 'completata' && !hasReviewed(b.id)
                   const haRecensito = b.stato === 'completata' && hasReviewed(b.id)
                   const reviewAperta = reviewOpenId === b.id
+                  const canChat = !!b.confermatoDa
+                  const unread = canChat ? getUnread(b.id, user.id) : 0
                   return (
                     <div key={b.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <div className="flex items-start justify-between gap-3">
@@ -196,9 +234,24 @@ export default function DashboardCliente() {
                             <span className="flex items-center gap-1"><MapPin size={11} />{b.indirizzo}</span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
+                        <div className="flex flex-col items-end shrink-0 gap-1">
                           <div className="font-bold text-gray-800 text-sm">€ {b.totaleStimato}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">{b.oreStimate}h · {b.id}</div>
+                          <div className="text-xs text-gray-400">{b.oreStimate}h · {b.id}</div>
+                          {canChat && (
+                            <button
+                              onClick={() => setChatBookingId(b.id)}
+                              className="relative flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-medium transition mt-0.5"
+                              title="Apri chat"
+                            >
+                              <MessageSquare size={14} />
+                              Chat
+                              {unread > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                                  {unread > 9 ? '9+' : unread}
+                                </span>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -288,6 +341,61 @@ export default function DashboardCliente() {
 
         {/* Sidebar */}
         <div className="space-y-4">
+
+          {/* Messaggi recenti */}
+          {sortedChatBookings.length > 0 && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                  <MessageSquare size={18} className="text-blue-700" />
+                  Messaggi
+                  {totalUnread > 0 && (
+                    <span className="badge bg-red-500 text-white text-xs min-w-[20px] text-center">{totalUnread}</span>
+                  )}
+                </h2>
+              </div>
+              <div className="space-y-1">
+                {sortedChatBookings.slice(0, 5).map(b => {
+                  const last = getLastMessage(b.id)
+                  const unread = getUnread(b.id, user.id)
+                  const avatarLetter = (b.tecnicoNome || '?')[0].toUpperCase()
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => setChatBookingId(b.id)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition text-left group"
+                    >
+                      <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-sm shrink-0">
+                        {avatarLetter}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                            {b.tecnicoNome}
+                          </span>
+                          <span className="text-[10px] text-gray-400 shrink-0">{last ? formatMsgTime(last.createdAt) : ''}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1">
+                          <p className={`text-xs truncate ${unread > 0 ? 'text-gray-700' : 'text-gray-400'}`}>
+                            {last
+                              ? (last.type === 'image' ? '📷 Foto' : last.type === 'file' ? `📎 ${last.fileName || 'File'}` : last.text)
+                              : b.servizio
+                            }
+                          </p>
+                          {unread > 0 && (
+                            <span className="shrink-0 w-5 h-5 bg-blue-700 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                              {unread > 9 ? '9+' : unread}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="card p-6">
             <h2 className="font-bold text-gray-900 text-lg mb-4">Azioni rapide</h2>
             <div className="space-y-3">

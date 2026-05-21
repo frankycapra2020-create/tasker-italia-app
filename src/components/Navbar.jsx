@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, Wrench, Zap, ChevronDown, LogOut, LayoutDashboard, User } from 'lucide-react'
+import { Menu, X, Wrench, Zap, ChevronDown, LogOut, LayoutDashboard, MessageSquare } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useBooking } from '../context/BookingContext'
+import { useChat } from '../context/ChatContext'
 
 const navLinks = [
   { to: '/', label: 'Inizio' },
@@ -56,6 +58,16 @@ function UserMenu({ user, logout }) {
               <LayoutDashboard size={16} className="text-gray-400" />
               Pannello
             </button>
+            <button
+              onClick={() => { navigate(dashboardPath + '#messaggi'); setOpen(false) }}
+              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+            >
+              <div className="relative">
+                <MessageSquare size={16} className="text-gray-400" />
+                <ChatBadge user={user} />
+              </div>
+              Messaggi
+            </button>
             <div className="border-t border-gray-100 mt-1 pt-1">
               <button
                 onClick={() => { logout(); setOpen(false) }}
@@ -69,6 +81,21 @@ function UserMenu({ user, logout }) {
         </div>
       )}
     </div>
+  )
+}
+
+function ChatBadge({ user }) {
+  const { getByCliente, getByTecnico } = useBooking()
+  const { getTotalUnread } = useChat()
+  const bookings = user.ruolo === 'cliente'
+    ? getByCliente(user.id).filter(b => b.confermatoDa)
+    : getByTecnico(user.id)
+  const total = getTotalUnread(bookings.map(b => b.id), user.id)
+  if (total === 0) return null
+  return (
+    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow">
+      {total > 9 ? '9+' : total}
+    </span>
   )
 }
 
@@ -109,6 +136,16 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            {user && (
+              <Link
+                to={user.ruolo === 'tecnico' ? '/dashboard/tecnico' : '/dashboard/cliente'}
+                className="relative p-2 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
+                title="Messaggi"
+              >
+                <MessageSquare size={20} />
+                <ChatBadge user={user} />
+              </Link>
+            )}
             {user ? (
               <UserMenu user={user} logout={logout} />
             ) : (

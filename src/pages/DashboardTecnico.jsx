@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
+import { useChat } from '../context/ChatContext'
 import ReviewCard from '../components/ReviewCard'
+import ChatWindow from '../components/ChatWindow'
 import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
@@ -10,6 +12,14 @@ const formatDateIT = (str) => {
   if (!str) return ''
   const [y, m, d] = str.split('-')
   return `${parseInt(d)} ${MESI[parseInt(m) - 1]} ${y}`
+}
+const formatMsgTime = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const today = new Date()
+  if (d.toDateString() === today.toDateString())
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  return `${d.getDate()} ${MESI[d.getMonth()]}`
 }
 
 const STATO_STYLE = {
@@ -34,13 +44,15 @@ const SPEC_ICON = {
   'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
 }
 
-const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni']
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi']
 
 export default function DashboardTecnico() {
   const { user, logout } = useAuth()
   const { getPending, getByTecnico, updateBooking } = useBooking()
   const { getByBookingIds, addReply, getAvgRating } = useReview()
+  const { getUnread, getLastMessage, getTotalUnread } = useChat()
   const [tab, setTab] = useState(0)
+  const [chatBookingId, setChatBookingId] = useState(null)
 
   const pendingAll = getPending().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const miei = getByTecnico(user.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -63,8 +75,26 @@ export default function DashboardTecnico() {
   }
   const completa = (id) => updateBooking(id, { stato: 'completata' })
 
+  const totalUnread = getTotalUnread(miei.map(b => b.id), user.id)
+
+  // Sort miei bookings by last message time for Messaggi tab
+  const mieiConChat = [...miei].sort((a, b) => {
+    const la = getLastMessage(a.id)?.createdAt || a.createdAt
+    const lb = getLastMessage(b.id)?.createdAt || b.createdAt
+    return new Date(lb) - new Date(la)
+  })
+
+  const chatBooking = chatBookingId ? miei.find(b => b.id === chatBookingId) : null
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {chatBooking && (
+        <ChatWindow
+          booking={chatBooking}
+          currentUser={user}
+          onClose={() => setChatBookingId(null)}
+        />
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
@@ -124,12 +154,12 @@ export default function DashboardTecnico() {
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">
             {/* Tabs */}
-            <div className="flex border-b border-gray-100">
+            <div className="flex border-b border-gray-100 overflow-x-auto">
               {TABS.map((t, i) => (
                 <button
                   key={t}
                   onClick={() => setTab(i)}
-                  className={`flex-1 py-4 text-sm font-semibold transition-colors relative ${
+                  className={`flex-1 py-4 text-sm font-semibold transition-colors relative whitespace-nowrap px-2 ${
                     tab === i ? 'text-blue-800' : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
@@ -139,6 +169,9 @@ export default function DashboardTecnico() {
                   )}
                   {i === 2 && myReviews.length > 0 && (
                     <span className="ml-1.5 badge bg-yellow-100 text-yellow-700 text-xs">{myReviews.length}</span>
+                  )}
+                  {i === 3 && totalUnread > 0 && (
+                    <span className="ml-1.5 badge bg-red-500 text-white text-xs">{totalUnread}</span>
                   )}
                   {tab === i && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-700 rounded-full" />
@@ -260,6 +293,63 @@ export default function DashboardTecnico() {
                               </div>
                             )}
                           </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Tab 3: Messaggi */}
+              {tab === 3 && (
+                <>
+                  {mieiConChat.length === 0 ? (
+                    <div className="text-center py-14">
+                      <MessageSquare size={36} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-400 font-medium">Nessuna conversazione</p>
+                      <p className="text-gray-400 text-sm mt-1">Le chat con i clienti appariranno qui dopo aver accettato interventi</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {mieiConChat.map(b => {
+                        const last = getLastMessage(b.id)
+                        const unread = getUnread(b.id, user.id)
+                        const avatarLetter = (b.clienteNome || '?')[0].toUpperCase()
+                        const statoStyle = STATO_STYLE[b.stato] ?? { badge: 'bg-gray-100 text-gray-600', label: b.stato }
+                        return (
+                          <button
+                            key={b.id}
+                            onClick={() => setChatBookingId(b.id)}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition text-left border border-transparent hover:border-gray-100"
+                          >
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-sm shrink-0">
+                              {avatarLetter}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                  {b.clienteNome}
+                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[10px] text-gray-400">{last ? formatMsgTime(last.createdAt) : ''}</span>
+                                  {unread > 0 && (
+                                    <span className="w-5 h-5 bg-blue-700 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                      {unread > 9 ? '9+' : unread}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className={`text-xs truncate flex-1 ${unread > 0 ? 'text-gray-700' : 'text-gray-400'}`}>
+                                  {last
+                                    ? (last.type === 'image' ? '📷 Foto' : last.type === 'file' ? `📎 ${last.fileName || 'File'}` : last.text)
+                                    : b.servizio
+                                  }
+                                </p>
+                                <span className={`badge text-[10px] shrink-0 ${statoStyle.badge}`}>{statoStyle.label}</span>
+                              </div>
+                            </div>
+                          </button>
                         )
                       })}
                     </div>
