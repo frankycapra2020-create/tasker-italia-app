@@ -53,6 +53,9 @@ const ORE_OPTIONS = [
 const SLOTS_MATTINA = ['09:00', '10:00', '11:00', '12:00']
 const SLOTS_POMERIGGIO = ['14:00', '15:00', '16:00', '17:00']
 
+const DOW_KEYS = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
+const slotInRange = (slot, inizio, fine) => slot >= inizio && slot < fine
+
 const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
   'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
 const GIORNI_BREVI = ['Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa', 'Do']
@@ -77,44 +80,75 @@ function ErrMsg({ msg }) {
   )
 }
 
-function PreventivoBadge({ catInfo, oreStimate, urgenza, tecnico }) {
-  const tariffa = tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
-  const supplemento = urgenza === 'urgente' ? 30 : 0
-  const totale = tariffa * oreStimate + supplemento
+function PreventivoBadge({ catInfo, oreStimate, urgenza, tecnico, servizio }) {
+  const tariffe = tecnico?.tariffe
+  const servizioFixed = tariffe?.servizi?.find(s => s.nome === servizio && s.prezzo != null)
+  const tariffa = tariffe?.oraria ?? tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
+  const chiamata = tariffe?.chiamata ?? 0
+  const urgenzaExtra = urgenza === 'urgente' ? (tariffe?.urgenzaExtra ?? 30) : 0
+  const base = servizioFixed ? servizioFixed.prezzo : chiamata + tariffa * oreStimate
+  const totaleCalc = base + urgenzaExtra
+  const minimo = tariffe?.minimoIntervento ?? 0
+  const totale = Math.max(totaleCalc, minimo)
 
   return (
     <div className="card p-5 sticky top-20">
       <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
         <span className="text-orange-500">€</span> Stima preventivo
+        {tecnico && <span className="text-xs font-normal text-gray-400 ml-auto">{tecnico.name}</span>}
       </h3>
       <div className="space-y-2 text-sm">
-        <div className="flex justify-between text-gray-600">
-          <span>Tariffa oraria</span>
-          <span className="font-medium">€{tariffa}/ora</span>
-        </div>
-        <div className="flex justify-between text-gray-600">
-          <span>Ore stimate</span>
-          <span className="font-medium">× {oreStimate}</span>
-        </div>
-        {supplemento > 0 && (
+        {servizioFixed ? (
+          <div className="flex justify-between text-gray-600">
+            <span className="italic truncate mr-2">{servizioFixed.nome}</span>
+            <span className="font-medium shrink-0">€{servizioFixed.prezzo}</span>
+          </div>
+        ) : (
+          <>
+            {chiamata > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>Tariffa di chiamata</span>
+                <span className="font-medium">€{chiamata}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-gray-600">
+              <span>Tariffa oraria</span>
+              <span className="font-medium">€{tariffa}/ora</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Ore stimate</span>
+              <span className="font-medium">× {oreStimate}</span>
+            </div>
+          </>
+        )}
+        {urgenzaExtra > 0 && (
           <div className="flex justify-between text-red-600">
             <span>Suppl. urgenza</span>
-            <span className="font-medium">+ €{supplemento}</span>
+            <span className="font-medium">+ €{urgenzaExtra}</span>
+          </div>
+        )}
+        {minimo > 0 && totale > totaleCalc && (
+          <div className="flex justify-between text-amber-600 text-xs">
+            <span>Minimo intervento applicato</span>
+            <span className="font-medium">€{minimo}</span>
           </div>
         )}
         <div className="flex justify-between pt-3 border-t border-gray-100">
           <span className="font-bold text-gray-900">Totale stimato</span>
           <span className="font-bold text-orange-600 text-lg">{formatPrezzo(totale)}</span>
         </div>
-        {catInfo && (
+        {catInfo && !tecnico && (
           <p className="text-xs text-gray-400 mt-1">Range {catInfo.label}: {catInfo.range}</p>
+        )}
+        {tariffe?.festiviPerc > 0 && (
+          <p className="text-xs text-gray-400">+{tariffe.festiviPerc}% per festivi/notturni</p>
         )}
       </div>
     </div>
   )
 }
 
-function Calendario({ tecnicoId, selected, onSelect, getOccupied }) {
+function Calendario({ tecnicoId, selected, onSelect, getOccupied, disponibilita }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -138,7 +172,12 @@ function Calendario({ tecnicoId, selected, onSelect, getOccupied }) {
   const isDisabled = (d) => {
     const date = new Date(year, month, d)
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    return date < todayStart || date.getDay() === 0
+    if (date < todayStart) return true
+    if (disponibilita) {
+      const dayKey = DOW_KEYS[date.getDay()]
+      return !disponibilita[dayKey]?.attivo
+    }
+    return date.getDay() === 0
   }
 
   const allSlots = [...SLOTS_MATTINA, ...SLOTS_POMERIGGIO]
@@ -201,13 +240,25 @@ function Calendario({ tecnicoId, selected, onSelect, getOccupied }) {
 
       <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-        Giorni disponibili &nbsp;·&nbsp; Domeniche chiuse
+        Giorni disponibili &nbsp;·&nbsp; Giorni non lavorativi disabilitati
       </p>
     </div>
   )
 }
 
 // ─── Componente principale ────────────────────────────────────────────────────
+
+function getSlotsDisponibili(tecnico, data) {
+  if (!tecnico?.disponibilita || !data) return { mattina: SLOTS_MATTINA, pomeriggio: SLOTS_POMERIGGIO }
+  const date = new Date(data + 'T12:00:00')
+  const dayKey = DOW_KEYS[date.getDay()]
+  const dDisp = tecnico.disponibilita[dayKey]
+  if (!dDisp?.attivo) return { mattina: [], pomeriggio: [] }
+  return {
+    mattina: SLOTS_MATTINA.filter(s => slotInRange(s, dDisp.inizio, dDisp.fine)),
+    pomeriggio: SLOTS_POMERIGGIO.filter(s => slotInRange(s, dDisp.inizio, dDisp.fine)),
+  }
+}
 
 export default function Booking() {
   const { user } = useAuth()
@@ -270,10 +321,16 @@ export default function Booking() {
         return true
       })
     : []
-  const tariffa = tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
-  const supplemento = urgenza === 'urgente' ? 30 : 0
-  const totale = tariffa * oreStimate + supplemento
+  const tariffe = tecnico?.tariffe
+  const servizioFixed = tariffe?.servizi?.find(s => s.nome === servizio && s.prezzo != null)
+  const tariffa = tariffe?.oraria ?? tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
+  const chiamata = tariffe?.chiamata ?? 0
+  const supplemento = urgenza === 'urgente' ? (tariffe?.urgenzaExtra ?? 30) : 0
+  const base = servizioFixed ? servizioFixed.prezzo : chiamata + tariffa * oreStimate
+  const minimoEff = tariffe?.minimoIntervento ?? 0
+  const totale = Math.max(base + supplemento, minimoEff)
   const occupiedSlots = tecnico && dataSelezionata ? getOccupied(tecnico.id, dataSelezionata) : []
+  const slotsDisponibili = getSlotsDisponibili(tecnico, dataSelezionata)
 
   // ── Validazione ────────────────────────────────────────────────────────────
   const validateStep1 = () => {
@@ -349,6 +406,7 @@ export default function Booking() {
       oreStimate,
       urgenza,
       tariffa,
+      chiamata,
       supplemento,
       totaleStimato: totale,
       dataIntervento: dataSelezionata,
@@ -615,7 +673,7 @@ export default function Booking() {
           </div>
 
           <div>
-            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={null} />
+            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={null} servizio={servizio} />
           </div>
         </div>
       )}
@@ -708,9 +766,10 @@ export default function Booking() {
                   onSelect={(d) => {
                     setDataSelezionata(d)
                     setOraSelezionata(null)
-                    setErrors(e => ({ ...e, data: undefined }))
+                    setErrors(e => ({ ...e, data: undefined, ora: undefined }))
                   }}
                   getOccupied={getOccupied}
+                  disponibilita={tecnico.disponibilita}
                 />
               </div>
             )}
@@ -722,10 +781,13 @@ export default function Booking() {
                 <p className="text-sm text-gray-500 mb-4">{formatDateIT(dataSelezionata)}</p>
                 {errors.ora && <ErrMsg msg={errors.ora} />}
                 <div className="space-y-4">
+                  {slotsDisponibili.mattina.length === 0 && slotsDisponibili.pomeriggio.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">Nessuno slot disponibile per questo giorno</p>
+                  )}
                   {[
-                    { label: 'Mattina', slots: SLOTS_MATTINA },
-                    { label: 'Pomeriggio', slots: SLOTS_POMERIGGIO },
-                  ].map(({ label, slots }) => (
+                    { label: 'Mattina', slots: slotsDisponibili.mattina },
+                    { label: 'Pomeriggio', slots: slotsDisponibili.pomeriggio },
+                  ].filter(g => g.slots.length > 0).map(({ label, slots }) => (
                     <div key={label}>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{label}</p>
                       <div className="grid grid-cols-4 gap-2">
@@ -770,7 +832,7 @@ export default function Booking() {
           </div>
 
           <div className="space-y-4">
-            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={tecnico} />
+            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={tecnico} servizio={servizio} />
             {tecnico && dataSelezionata && oraSelezionata && (
               <div className="card p-5 bg-blue-50 border-blue-100">
                 <h3 className="font-semibold text-blue-900 text-sm mb-3">Appuntamento selezionato</h3>
@@ -825,22 +887,43 @@ export default function Booking() {
             <div className="card p-6">
               <h2 className="font-bold text-gray-900 mb-4">Preventivo economico</h2>
               <div className="space-y-2.5 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>Tariffa oraria ({tecnico?.name})</span>
-                  <span className="font-medium">€{tariffa}/ora</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Ore stimate</span>
-                  <span className="font-medium">× {oreStimate}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotale</span>
-                  <span className="font-medium">{formatPrezzo(tariffa * oreStimate)}</span>
-                </div>
+                {servizioFixed ? (
+                  <div className="flex justify-between text-gray-600">
+                    <span className="italic">{servizioFixed.nome}</span>
+                    <span className="font-medium">€{servizioFixed.prezzo}</span>
+                  </div>
+                ) : (
+                  <>
+                    {chiamata > 0 && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Tariffa di chiamata</span>
+                        <span className="font-medium">€{chiamata}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-600">
+                      <span>Tariffa oraria ({tecnico?.name})</span>
+                      <span className="font-medium">€{tariffa}/ora</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Ore stimate</span>
+                      <span className="font-medium">× {oreStimate}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotale</span>
+                      <span className="font-medium">{formatPrezzo(chiamata + tariffa * oreStimate)}</span>
+                    </div>
+                  </>
+                )}
                 {supplemento > 0 && (
                   <div className="flex justify-between text-red-600">
                     <span>Supplemento urgenza</span>
                     <span className="font-medium">+ €{supplemento}</span>
+                  </div>
+                )}
+                {minimoEff > 0 && totale > base + supplemento && (
+                  <div className="flex justify-between text-amber-600 text-xs">
+                    <span>Minimo intervento applicato</span>
+                    <span className="font-medium">€{minimoEff}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-3 border-t border-gray-100 text-base">
@@ -941,7 +1024,7 @@ export default function Booking() {
           </div>
 
           <div className="space-y-4">
-            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={tecnico} />
+            <PreventivoBadge catInfo={catInfo} oreStimate={oreStimate} urgenza={urgenza} tecnico={tecnico} servizio={servizio} />
             {tecnico && (
               <div className="card p-5">
                 <h3 className="font-semibold text-gray-800 text-sm mb-3">Il tuo tecnico</h3>

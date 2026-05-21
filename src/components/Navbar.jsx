@@ -10,6 +10,7 @@ const navLinks = [
   { to: '/servizi', label: 'Servizi' },
   { to: '/tecnici', label: 'Tecnici' },
   { to: '/tutorial', label: 'Tutorial Sicurezza' },
+  { to: '/diventa-tecnico', label: 'Diventa Tecnico', highlight: true },
 ]
 
 function UserMenu({ user, logout }) {
@@ -125,7 +126,11 @@ export default function Navbar() {
                 key={link.to}
                 to={link.to}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === link.to
+                  link.highlight
+                    ? pathname === link.to
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'text-orange-600 hover:bg-orange-50 font-semibold'
+                    : pathname === link.to
                     ? 'bg-blue-50 text-blue-800'
                     : 'text-gray-600 hover:text-blue-800 hover:bg-gray-50'
                 }`}

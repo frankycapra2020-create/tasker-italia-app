@@ -7,7 +7,7 @@ import { useNotifiche } from '../hooks/useNotifiche'
 import { useLocation } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard'
 import ChatWindow from '../components/ChatWindow'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation } from 'lucide-react'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation, Tag, Plus, Trash2, Percent } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -46,7 +46,298 @@ const SPEC_ICON = {
   'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
 }
 
-const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi']
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità']
+
+const GIORNI_SETTIMANA = [
+  { key: 'lun', label: 'Lunedì' },
+  { key: 'mar', label: 'Martedì' },
+  { key: 'mer', label: 'Mercoledì' },
+  { key: 'gio', label: 'Giovedì' },
+  { key: 'ven', label: 'Venerdì' },
+  { key: 'sab', label: 'Sabato' },
+  { key: 'dom', label: 'Domenica' },
+]
+
+const DEFAULT_DISP = {
+  lun: { attivo: true, inizio: '08:00', fine: '18:00' },
+  mar: { attivo: true, inizio: '08:00', fine: '18:00' },
+  mer: { attivo: true, inizio: '08:00', fine: '18:00' },
+  gio: { attivo: true, inizio: '08:00', fine: '18:00' },
+  ven: { attivo: true, inizio: '08:00', fine: '18:00' },
+  sab: { attivo: false, inizio: '09:00', fine: '13:00' },
+  dom: { attivo: false, inizio: '09:00', fine: '13:00' },
+}
+
+const CAMPI_TARIFFE = [
+  { key: 'oraria',            label: 'Tariffa oraria',              unit: '€/ora', Icon: Euro,    desc: 'Costo per ogni ora di lavoro' },
+  { key: 'chiamata',          label: 'Tariffa di chiamata',         unit: '€',     Icon: MapPin,  desc: 'Costo fisso per ogni uscita/intervento' },
+  { key: 'urgenzaExtra',      label: 'Supplemento urgenza',         unit: '€',     Icon: AlertCircle, desc: 'Extra fisso per interventi urgenti' },
+  { key: 'festiviPerc',       label: 'Supplemento festivi/notturni',unit: '%',     Icon: Percent, desc: 'Percentuale aggiuntiva su festivi e notturni' },
+  { key: 'minimoIntervento',  label: 'Tariffa minima intervento',   unit: '€',     Icon: TrendingUp, desc: 'Importo minimo addebitato per ogni lavoro' },
+]
+
+function TariffeTab({ user, updateUser }) {
+  const initTariffe = {
+    oraria:           user.tariffe?.oraria           ?? 65,
+    chiamata:         user.tariffe?.chiamata          ?? 25,
+    urgenzaExtra:     user.tariffe?.urgenzaExtra      ?? 30,
+    festiviPerc:      user.tariffe?.festiviPerc       ?? 30,
+    minimoIntervento: user.tariffe?.minimoIntervento  ?? 80,
+    servizi:          user.tariffe?.servizi           ?? [],
+  }
+  const [tariffe, setTariffe] = useState(initTariffe)
+  const [saved, setSaved]     = useState(false)
+  const [nomeNuovo, setNomeNuovo]   = useState('')
+  const [prezzoNuovo, setPrezzoNuovo] = useState('')
+
+  const setField = (key, val) =>
+    setTariffe(t => ({ ...t, [key]: Number(val) }))
+
+  const handleSave = () => {
+    updateUser({ tariffe })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const addServizio = () => {
+    if (!nomeNuovo.trim()) return
+    setTariffe(t => ({
+      ...t,
+      servizi: [...t.servizi, {
+        nome: nomeNuovo.trim(),
+        prezzo: prezzoNuovo !== '' ? Number(prezzoNuovo) : null,
+      }],
+    }))
+    setNomeNuovo('')
+    setPrezzoNuovo('')
+  }
+
+  const removeServizio = (idx) =>
+    setTariffe(t => ({ ...t, servizi: t.servizi.filter((_, i) => i !== idx) }))
+
+  const updateServizio = (idx, field, val) =>
+    setTariffe(t => ({
+      ...t,
+      servizi: t.servizi.map((s, i) =>
+        i !== idx ? s : {
+          ...s,
+          [field]: field === 'prezzo'
+            ? (val === '' ? null : Number(val))
+            : val,
+        }
+      ),
+    }))
+
+  return (
+    <div className="space-y-7">
+      {/* Tariffe base */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Euro size={15} className="text-orange-500" /> Tariffe base
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {CAMPI_TARIFFE.map(({ key, label, unit, Icon, desc }) => (
+            <div key={key} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Icon size={13} className="text-gray-400 shrink-0" />
+                <span className="text-xs font-semibold text-gray-700">{label}</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">{desc}</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={tariffe[key]}
+                  onChange={e => setField(key, e.target.value)}
+                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+                <span className="text-sm text-gray-500 font-medium">{unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tariffe per servizio */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Tag size={15} className="text-blue-500" /> Tariffe per servizio
+        </h3>
+        <p className="text-xs text-gray-400 mb-4">Prezzi fissi per interventi specifici — visibili ai clienti sul tuo profilo</p>
+
+        {tariffe.servizi.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {tariffe.servizi.map((s, i) => (
+              <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
+                <input
+                  className="flex-1 bg-transparent text-sm font-medium text-gray-700 focus:outline-none min-w-0"
+                  value={s.nome}
+                  onChange={e => updateServizio(i, 'nome', e.target.value)}
+                  placeholder="Nome servizio"
+                />
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-xs text-gray-400">€</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="—"
+                    value={s.prezzo ?? ''}
+                    onChange={e => updateServizio(i, 'prezzo', e.target.value)}
+                    className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <button
+                  onClick={() => removeServizio(i)}
+                  className="p-1 text-gray-300 hover:text-red-500 transition shrink-0"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Aggiungi servizio */}
+        <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+          <input
+            className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none min-w-0"
+            placeholder="Nome servizio (es. Sostituzione rubinetto)"
+            value={nomeNuovo}
+            onChange={e => setNomeNuovo(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addServizio()}
+          />
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs text-gray-400">€</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="prezzo"
+              value={prezzoNuovo}
+              onChange={e => setPrezzoNuovo(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addServizio()}
+              className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <button
+            onClick={addServizio}
+            className="shrink-0 p-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition"
+            title="Aggiungi servizio"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Salva */}
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+        <button
+          onClick={handleSave}
+          className="btn-accent py-2.5 px-6 text-sm flex items-center gap-2"
+        >
+          <CheckCircle size={15} /> Salva tariffe
+        </button>
+        {saved && (
+          <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
+            <CheckCircle size={14} /> Tariffe salvate con successo!
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DisponibilitaTab({ user, updateUser }) {
+  const [disp, setDisp] = useState(user.disponibilita ?? DEFAULT_DISP)
+  const [saved, setSaved] = useState(false)
+
+  const toggleGiorno = (key) =>
+    setDisp(d => ({ ...d, [key]: { ...d[key], attivo: !d[key].attivo } }))
+
+  const setOrario = (key, field, val) =>
+    setDisp(d => ({ ...d, [key]: { ...d[key], [field]: val } }))
+
+  const handleSave = () => {
+    updateUser({ disponibilita: disp })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Calendar size={15} className="text-blue-500" /> Orari di lavoro settimanali
+        </h3>
+        <p className="text-xs text-gray-400 mb-4">
+          Imposta i giorni e gli orari in cui sei disponibile. I clienti vedranno solo gli slot compatibili nel calendario di prenotazione.
+        </p>
+        <div className="space-y-2">
+          {GIORNI_SETTIMANA.map(({ key, label }) => {
+            const g = disp[key]
+            return (
+              <div
+                key={key}
+                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                  g.attivo ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-100'
+                }`}
+              >
+                <button
+                  onClick={() => toggleGiorno(key)}
+                  className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                    g.attivo ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                  aria-label={g.attivo ? 'Disabilita' : 'Abilita'}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+                      g.attivo ? 'left-5' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+                <span className={`w-20 text-sm font-medium shrink-0 ${g.attivo ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {label}
+                </span>
+                {g.attivo ? (
+                  <div className="flex items-center gap-2 flex-1 flex-wrap">
+                    <input
+                      type="time"
+                      value={g.inizio}
+                      onChange={e => setOrario(key, 'inizio', e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                    <span className="text-xs text-gray-400">–</span>
+                    <input
+                      type="time"
+                      value={g.fine}
+                      onChange={e => setOrario(key, 'fine', e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400 italic flex-1">Non disponibile</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+        <button
+          onClick={handleSave}
+          className="btn-accent py-2.5 px-6 text-sm flex items-center gap-2"
+        >
+          <CheckCircle size={15} /> Salva disponibilità
+        </button>
+        {saved && (
+          <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
+            <CheckCircle size={14} /> Disponibilità salvata!
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardTecnico() {
   const { user, logout, updateUser } = useAuth()
@@ -71,8 +362,19 @@ export default function DashboardTecnico() {
   const myReviews = getByBookingIds(myBookingIds).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   const completati = miei.filter(b => b.stato === 'completata')
-  const guadagni = completati.reduce((sum, b) => sum + (b.totaleStimato ?? 0), 0)
-  const inCorso = miei.filter(b => b.stato === 'confermata').length
+
+  const now = new Date()
+  const guadagniMese = completati
+    .filter(b => {
+      const d = new Date(b.createdAt)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    })
+    .reduce((sum, b) => sum + (b.totaleStimato ?? 0), 0)
+
+  const todayISO = now.toISOString().slice(0, 10)
+  const prossimiApp = [...miei]
+    .filter(b => b.stato === 'confermata' && b.dataIntervento >= todayISO)
+    .sort((a, b) => a.dataIntervento.localeCompare(b.dataIntervento))
 
   const avgRating = getAvgRating(null)
   const avgFromReviews = myReviews.length > 0
@@ -153,10 +455,10 @@ export default function DashboardTecnico() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { icon: <Briefcase size={20} className="text-blue-600" />,    label: 'Lavori completati',   value: completati.length, bg: 'bg-blue-50' },
-          { icon: <Star size={20} className="text-yellow-500" />,       label: 'In corso',            value: inCorso, bg: 'bg-yellow-50' },
-          { icon: <Euro size={20} className="text-green-600" />,        label: 'Guadagni totali',     value: guadagni > 0 ? `€ ${guadagni}` : '€ 0', bg: 'bg-green-50' },
-          { icon: <TrendingUp size={20} className="text-orange-500" />, label: 'Nuove richieste',     value: pendingAll.length, bg: 'bg-orange-50' },
+          { icon: <Briefcase size={20} className="text-blue-600" />,    label: 'Lavori completati',  value: completati.length, bg: 'bg-blue-50' },
+          { icon: <Euro size={20} className="text-green-600" />,        label: 'Guadagni del mese',  value: guadagniMese > 0 ? `€ ${guadagniMese}` : '€ 0', bg: 'bg-green-50' },
+          { icon: <Star size={20} className="text-yellow-500" fill={avgFromReviews !== null ? 'currentColor' : 'none'} />, label: 'Valutazione media', value: avgFromReviews !== null ? `${avgFromReviews.toFixed(1)} ★` : '—', bg: 'bg-yellow-50' },
+          { icon: <TrendingUp size={20} className="text-orange-500" />, label: 'Nuove richieste',    value: pendingAll.length, bg: 'bg-orange-50' },
         ].map(s => (
           <div key={s.label} className="card p-5 flex items-center gap-4">
             <div className={`${s.bg} p-3 rounded-xl`}>{s.icon}</div>
@@ -376,6 +678,16 @@ export default function DashboardTecnico() {
                 </>
               )}
 
+              {/* Tab 4: Tariffe */}
+              {tab === 4 && (
+                <TariffeTab user={user} updateUser={updateUser} />
+              )}
+
+              {/* Tab 5: Disponibilità */}
+              {tab === 5 && (
+                <DisponibilitaTab user={user} updateUser={updateUser} />
+              )}
+
               {/* Tab 2: Recensioni */}
               {tab === 2 && (
                 <>
@@ -411,6 +723,37 @@ export default function DashboardTecnico() {
 
         {/* Sidebar */}
         <div className="space-y-4">
+
+          {/* Prossimi appuntamenti */}
+          <div className="card p-5">
+            <h2 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-1.5">
+              <Calendar size={14} className="text-blue-500" /> Prossimi appuntamenti
+            </h2>
+            {prossimiApp.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-3">Nessun appuntamento confermato</p>
+            ) : (
+              <div className="space-y-2">
+                {prossimiApp.slice(0, 3).map(b => (
+                  <div key={b.id} className="flex items-start gap-2.5 p-2.5 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="bg-blue-100 p-1.5 rounded-lg shrink-0">
+                      {CAT_ICON[b.categoria] ?? <Briefcase size={13} className="text-blue-600" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-800 truncate">{b.servizio}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{b.clienteNome}</p>
+                      <p className="text-xs text-blue-600 font-medium mt-0.5">
+                        {formatDateIT(b.dataIntervento)} · {b.oraIntervento}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {prossimiApp.length > 3 && (
+                  <p className="text-xs text-gray-400 text-center">+{prossimiApp.length - 3} altri appuntamenti</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="card p-6">
             <h2 className="font-bold text-gray-900 text-lg mb-4">Il tuo profilo</h2>
             <div className="space-y-3 text-sm">

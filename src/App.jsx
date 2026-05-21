@@ -17,6 +17,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import DashboardCliente from './pages/DashboardCliente'
 import DashboardTecnico from './pages/DashboardTecnico'
+import DiventaTecnico from './pages/DiventaTecnico'
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/tecnici/:id" element={<TechnicianProfile />} />
                   <Route path="/tutorial" element={<Tutorials />} />
                   <Route path="/preventivo" element={<Booking />} />
+                  <Route path="/diventa-tecnico" element={<DiventaTecnico />} />
                   <Route path="/accedi" element={<Login />} />
                   <Route path="/registrati" element={<Register />} />
                   <Route

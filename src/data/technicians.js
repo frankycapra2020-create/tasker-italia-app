@@ -19,6 +19,28 @@ export const technicians = [
     certifications: ['Cert. Termoidraulica UNI', 'Patentino gas'],
     responseTime: '< 1 ora',
     raggioOperativo: 40,
+    tariffe: {
+      oraria: 65,
+      chiamata: 30,
+      urgenzaExtra: 35,
+      festiviPerc: 30,
+      minimoIntervento: 90,
+      servizi: [
+        { nome: 'Sblocco scarichi intasati', prezzo: 75 },
+        { nome: 'Riparazione rubinetti', prezzo: 65 },
+        { nome: 'Installazione sanitari', prezzo: 150 },
+        { nome: 'Perdita o rottura tubo', prezzo: 85 },
+      ],
+    },
+    disponibilita: {
+      lun: { attivo: true, inizio: '08:00', fine: '18:00' },
+      mar: { attivo: true, inizio: '08:00', fine: '18:00' },
+      mer: { attivo: true, inizio: '08:00', fine: '18:00' },
+      gio: { attivo: true, inizio: '08:00', fine: '18:00' },
+      ven: { attivo: true, inizio: '08:00', fine: '18:00' },
+      sab: { attivo: true, inizio: '09:00', fine: '13:00' },
+      dom: { attivo: false, inizio: '09:00', fine: '13:00' },
+    },
   },
   {
     id: 2,
@@ -40,6 +62,27 @@ export const technicians = [
     certifications: ['Abilitazione D.M. 37/08', 'Certificazione KNX', 'Dichiarazione conformità'],
     responseTime: '< 2 ore',
     raggioOperativo: 50,
+    tariffe: {
+      oraria: 70,
+      chiamata: 35,
+      urgenzaExtra: 40,
+      festiviPerc: 30,
+      minimoIntervento: 100,
+      servizi: [
+        { nome: 'Aggiunta prese/punti luce', prezzo: 85 },
+        { nome: 'Sostituzione quadro elettrico', prezzo: 350 },
+        { nome: 'Messa a norma impianto', prezzo: 280 },
+      ],
+    },
+    disponibilita: {
+      lun: { attivo: true, inizio: '09:00', fine: '17:00' },
+      mar: { attivo: true, inizio: '09:00', fine: '17:00' },
+      mer: { attivo: true, inizio: '09:00', fine: '17:00' },
+      gio: { attivo: true, inizio: '09:00', fine: '17:00' },
+      ven: { attivo: true, inizio: '09:00', fine: '17:00' },
+      sab: { attivo: false, inizio: '09:00', fine: '13:00' },
+      dom: { attivo: false, inizio: '09:00', fine: '13:00' },
+    },
   },
   {
     id: 3,
@@ -61,6 +104,19 @@ export const technicians = [
     certifications: ['Cert. F-GAS cat. I', 'RINA caldaie a condensazione'],
     responseTime: '< 3 ore',
     raggioOperativo: 60,
+    tariffe: {
+      oraria: 60,
+      chiamata: 25,
+      urgenzaExtra: 30,
+      festiviPerc: 25,
+      minimoIntervento: 85,
+      servizi: [
+        { nome: 'Manutenzione annuale caldaia', prezzo: 95 },
+        { nome: 'Sostituzione componenti', prezzo: 120 },
+        { nome: 'Installazione climatizzatore', prezzo: 220 },
+        { nome: 'Ricarica gas refrigerante', prezzo: 80 },
+      ],
+    },
   },
   {
     id: 4,
@@ -82,6 +138,18 @@ export const technicians = [
     certifications: ['Abilitazione D.M. 37/08', 'UNI 11528'],
     responseTime: '< 2 ore',
     raggioOperativo: 80,
+    tariffe: {
+      oraria: 55,
+      chiamata: 20,
+      urgenzaExtra: 30,
+      festiviPerc: 25,
+      minimoIntervento: 75,
+      servizi: [
+        { nome: 'Perdita o rottura tubo', prezzo: 80 },
+        { nome: 'Guasto o corto circuito', prezzo: 75 },
+        { nome: 'Sblocco scarichi intasati', prezzo: 65 },
+      ],
+    },
   },
   {
     id: 5,
@@ -103,6 +171,18 @@ export const technicians = [
     certifications: ['GSE - Operatore fotovoltaico', 'Abilitazione D.M. 37/08'],
     responseTime: '< 4 ore',
     raggioOperativo: 45,
+    tariffe: {
+      oraria: 68,
+      chiamata: 30,
+      urgenzaExtra: 35,
+      festiviPerc: 30,
+      minimoIntervento: 90,
+      servizi: [
+        { nome: 'Aggiunta prese/punti luce', prezzo: 90 },
+        { nome: 'Nuovo impianto elettrico', prezzo: 900 },
+        { nome: 'Sostituzione quadro elettrico', prezzo: 380 },
+      ],
+    },
   },
   {
     id: 6,
@@ -124,5 +204,18 @@ export const technicians = [
     certifications: ['Patentino gas 3° grado', 'Manutentore caldaie UNI 11528'],
     responseTime: '< 2 ore',
     raggioOperativo: 55,
+    tariffe: {
+      oraria: 62,
+      chiamata: 25,
+      urgenzaExtra: 30,
+      festiviPerc: 30,
+      minimoIntervento: 85,
+      servizi: [
+        { nome: 'Manutenzione annuale caldaia', prezzo: 90 },
+        { nome: 'Installazione nuova caldaia', prezzo: 350 },
+        { nome: 'Sblocco scarichi intasati', prezzo: 70 },
+        { nome: 'Riparazione rubinetti', prezzo: 70 },
+      ],
+    },
   },
 ]
