@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { BookingProvider } from './context/BookingContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
@@ -17,6 +18,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+      <BookingProvider>
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <main className="flex-1">
@@ -48,6 +50,7 @@ function App() {
           </main>
           <Footer />
         </div>
+      </BookingProvider>
       </AuthProvider>
     </BrowserRouter>
   )
