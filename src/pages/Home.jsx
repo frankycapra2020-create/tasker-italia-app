@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, Quote } from 'lucide-react'
+import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, Quote, Euro, ChevronRight } from 'lucide-react'
 import { services } from '../data/services'
 import { technicians } from '../data/technicians'
 import { tutorials } from '../data/tutorials'
@@ -229,6 +229,49 @@ export default function Home() {
           <Link to="/tecnici" className="btn-secondary">
             Leggi tutte le recensioni
           </Link>
+        </div>
+      </section>
+
+      {/* Diventa Tecnico Banner */}
+      <section className="py-14 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl px-8 py-12 md:px-14 overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-2xl" />
+              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-orange-400/40 rounded-full blur-2xl" />
+            </div>
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="text-white text-center md:text-left">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/20 px-3 py-1 rounded-full mb-3">
+                  <Wrench size={12} /> Per i professionisti
+                </span>
+                <h2 className="text-2xl md:text-3xl font-extrabold mb-2 leading-snug">
+                  Sei un tecnico?<br className="hidden sm:block" /> Guadagna fino a{' '}
+                  <span className="underline decoration-2 underline-offset-2">€3.000/mese</span>
+                </h2>
+                <div className="flex flex-wrap justify-center md:justify-start gap-x-5 gap-y-1 mt-3 text-sm text-orange-100">
+                  {[
+                    { icon: <Clock size={13} />, label: 'Scegli i tuoi orari' },
+                    { icon: <Euro size={13} />, label: 'Imposta le tue tariffe' },
+                    { icon: <Shield size={13} />, label: 'Pagamenti garantiti' },
+                  ].map(item => (
+                    <span key={item.label} className="flex items-center gap-1">
+                      {item.icon} {item.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  to="/diventa-tecnico"
+                  className="inline-flex items-center gap-2 bg-white text-orange-600 font-bold px-7 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-sm whitespace-nowrap"
+                >
+                  Scopri come funziona <ChevronRight size={16} />
+                </Link>
+                <p className="text-orange-200 text-xs text-center mt-2">Registrazione gratuita</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
