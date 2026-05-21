@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
 import { useChat } from '../context/ChatContext'
+import { useNotifiche } from '../hooks/useNotifiche'
 import ReviewCard from '../components/ReviewCard'
 import ChatWindow from '../components/ChatWindow'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare } from 'lucide-react'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -85,6 +86,8 @@ export default function DashboardTecnico() {
   })
 
   const chatBooking = chatBookingId ? miei.find(b => b.id === chatBookingId) : null
+
+  const { permission: notifPerm, requestPermission, supported: notifSupported } = useNotifiche(user, miei, chatBookingId)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -423,6 +426,32 @@ export default function DashboardTecnico() {
               </div>
             </div>
           </div>
+
+          {/* Notifiche push */}
+          {notifSupported && notifPerm === 'default' && (
+            <div className="card p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-xl shrink-0">
+                  <Bell size={16} className="text-blue-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-800 text-sm">Abilita notifiche</h3>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Ricevi avvisi sui nuovi messaggi dei clienti in tempo reale</p>
+                  <button
+                    onClick={requestPermission}
+                    className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-700 hover:bg-blue-800 text-white py-1.5 px-3 rounded-lg transition"
+                  >
+                    <Bell size={12} /> Abilita ora
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {notifSupported && notifPerm === 'granted' && (
+            <div className="flex items-center gap-2 px-1 text-xs text-green-600 font-medium">
+              <CheckCircle size={13} /> Notifiche messaggi attive
+            </div>
+          )}
 
           <div className="card p-6 bg-gradient-to-br from-blue-900 to-blue-800 text-white">
             <h3 className="font-bold mb-2">Completa il profilo</h3>

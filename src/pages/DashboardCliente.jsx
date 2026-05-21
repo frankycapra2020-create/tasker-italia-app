@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
 import { useChat } from '../context/ChatContext'
+import { useNotifiche } from '../hooks/useNotifiche'
 import ChatWindow from '../components/ChatWindow'
-import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle, Image, MessageSquare } from 'lucide-react'
+import { Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin, Wrench, CheckCircle, XCircle, Image, MessageSquare, Bell, BellOff } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -94,6 +95,7 @@ export default function DashboardCliente() {
   // Only bookings with an assigned tech can have a chat
   const chatBookings = prenotazioni.filter(b => b.confermatoDa)
   const totalUnread = getTotalUnread(chatBookings.map(b => b.id), user.id)
+  const { permission: notifPerm, requestPermission, supported: notifSupported } = useNotifiche(user, chatBookings, chatBookingId)
 
   const totali = prenotazioni.length
   const inAttesa = prenotazioni.filter(b => b.stato === 'in_attesa').length
@@ -393,6 +395,32 @@ export default function DashboardCliente() {
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Notifiche push */}
+          {notifSupported && notifPerm === 'default' && (
+            <div className="card p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-xl shrink-0">
+                  <Bell size={16} className="text-blue-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-800 text-sm">Abilita notifiche</h3>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Ricevi avvisi sui nuovi messaggi anche con la scheda in background</p>
+                  <button
+                    onClick={requestPermission}
+                    className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-700 hover:bg-blue-800 text-white py-1.5 px-3 rounded-lg transition"
+                  >
+                    <Bell size={12} /> Abilita ora
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {notifSupported && notifPerm === 'granted' && (
+            <div className="flex items-center gap-2 px-1 text-xs text-green-600 font-medium">
+              <CheckCircle size={13} /> Notifiche messaggi attive
             </div>
           )}
 
