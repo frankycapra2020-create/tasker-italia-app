@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useGeo } from '../context/GeoContext'
-import { technicians } from '../data/technicians'
+import { useTechnicians } from '../context/TechniciansContext'
 import { getCittaCoords, haversineKm, formatKm } from '../utils/geo'
 import {
   Wrench, Zap, Thermometer, Wind, Star, MapPin, Clock,
@@ -18,21 +18,21 @@ const CATEGORIE = [
     id: 'idraulica', label: 'Idraulica', Icon: Wrench,
     colorBorder: 'border-blue-300 bg-blue-50', colorIcon: 'bg-blue-100 text-blue-700', colorText: 'text-blue-700',
     tariffaBase: 65, range: '€60–120/ora',
-    keywords: ['Idraulica', 'Termoidraulica'],
+    keywords: ['Idraulica', 'Termoidraulica', 'Idraulico'],
     servizi: ['Perdita o rottura tubo', 'Sblocco scarichi intasati', 'Installazione sanitari', 'Riparazione rubinetti', 'Manutenzione impianto idrico'],
   },
   {
     id: 'elettricità', label: 'Elettricità', Icon: Zap,
     colorBorder: 'border-yellow-300 bg-yellow-50', colorIcon: 'bg-yellow-100 text-yellow-700', colorText: 'text-yellow-700',
     tariffaBase: 60, range: '€50–100/ora',
-    keywords: ['Elettricità', 'Domotica', 'Fotovoltaico'],
+    keywords: ['Elettricità', 'Domotica', 'Fotovoltaico', 'Elettricista'],
     servizi: ['Guasto o corto circuito', 'Nuovo impianto elettrico', 'Aggiunta prese/punti luce', 'Sostituzione quadro elettrico', 'Messa a norma impianto'],
   },
   {
     id: 'caldaia', label: 'Caldaia', Icon: Thermometer,
     colorBorder: 'border-red-300 bg-red-50', colorIcon: 'bg-red-100 text-red-700', colorText: 'text-red-700',
     tariffaBase: 65, range: '€60–100/ora',
-    keywords: ['Caldaie', 'Termoidraulica'],
+    keywords: ['Caldaie', 'Termoidraulica', 'Caldaista'],
     servizi: ['Manutenzione annuale', 'Guasto o riparazione', 'Installazione nuova caldaia', 'Sostituzione componenti'],
   },
   {
@@ -264,6 +264,7 @@ export default function Booking() {
   const { user } = useAuth()
   const { addBooking, getOccupied } = useBooking()
   const geo = useGeo()
+  const { allTecnici } = useTechnicians()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
@@ -311,16 +312,46 @@ export default function Booking() {
   // Coordinate della città del cliente (per filtro raggio)
   const clienteCoords = getCittaCoords(citta)
 
-  const tecniciFiltrati = catInfo
-    ? technicians.filter(t => {
-        if (!t.specializations.some(s => catInfo.keywords.includes(s))) return false
-        if (clienteCoords) {
-          const dist = haversineKm(clienteCoords.lat, clienteCoords.lng, t.lat, t.lng)
-          return dist <= t.raggioOperativo
-        }
-        return true
-      })
+  const RAGGIO_DEFAULT = 100
+
+  const tecnicoMatchCategory = catInfo
+    ? allTecnici.filter(t => t.specializations?.some(s => catInfo.keywords.includes(s)))
     : []
+
+  let tecniciFiltrati = []
+  let tecniciFuoriRaggio = false
+
+  if (catInfo && tecnicoMatchCategory.length > 0) {
+    if (clienteCoords) {
+      const withDist = tecnicoMatchCategory.map(t => ({
+        ...t,
+        _distanza: t.lat && t.lng
+          ? haversineKm(clienteCoords.lat, clienteCoords.lng, t.lat, t.lng)
+          : null,
+      }))
+
+      const sortByDist = (a, b) => {
+        if (a._distanza === null && b._distanza === null) return 0
+        if (a._distanza === null) return 1
+        if (b._distanza === null) return -1
+        return a._distanza - b._distanza
+      }
+
+      // Tecnici in zona: senza coordinate (reali) o dentro il raggio operativo
+      const inZona = withDist.filter(t =>
+        t._distanza === null || t._distanza <= (t.raggioOperativo || RAGGIO_DEFAULT)
+      )
+
+      if (inZona.length === 0) {
+        tecniciFuoriRaggio = true
+        tecniciFiltrati = [...withDist].sort(sortByDist)
+      } else {
+        tecniciFiltrati = [...inZona].sort(sortByDist)
+      }
+    } else {
+      tecniciFiltrati = tecnicoMatchCategory
+    }
+  }
   const tariffe = tecnico?.tariffe
   const servizioFixed = tariffe?.servizi?.find(s => s.nome === servizio && s.prezzo != null)
   const tariffa = tariffe?.oraria ?? tecnico?.pricePerHour ?? catInfo?.tariffaBase ?? 65
@@ -687,19 +718,23 @@ export default function Booking() {
             <div className="card p-6">
               <h2 className="font-bold text-gray-900 mb-1">Scegli il tecnico</h2>
               <p className="text-sm text-gray-500 mb-2">Tecnici disponibili per {catInfo?.label}</p>
-              {clienteCoords && (
+              {clienteCoords && !tecniciFuoriRaggio && (
                 <div className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-3">
                   <Navigation size={12} className="shrink-0" />
                   Mostrando tecnici che operano vicino a <span className="font-semibold ml-1">{citta}</span>
                 </div>
               )}
+              {tecniciFuoriRaggio && (
+                <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                  <MapPin size={12} className="shrink-0" />
+                  Nessun tecnico trovato vicino a <span className="font-semibold mx-1">{citta}</span> — mostriamo tutti i tecnici disponibili
+                </div>
+              )}
               {errors.tecnico && <ErrMsg msg={errors.tecnico} />}
               {tecniciFiltrati.length === 0 && (
                 <div className="text-center py-8 space-y-2">
-                  <p className="text-sm text-gray-500 font-medium">Nessun tecnico disponibile nel tuo raggio.</p>
-                  {clienteCoords && (
-                    <p className="text-xs text-gray-400">Prova con una città diversa o verifica di aver scritto correttamente.</p>
-                  )}
+                  <p className="text-sm text-gray-500 font-medium">Nessun tecnico disponibile per questa categoria.</p>
+                  <p className="text-xs text-gray-400">Controlla la categoria selezionata al passo precedente.</p>
                 </div>
               )}
               <div className="space-y-3">
@@ -728,17 +763,24 @@ export default function Booking() {
                           </span>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Star size={11} className="text-yellow-400" fill="currentColor" />
-                            {t.rating} ({t.reviews})
-                          </span>
-                          <span className="flex items-center gap-1"><MapPin size={11} />{t.location.split(',')[0]}</span>
-                          <span className="flex items-center gap-1"><Clock size={11} />{t.responseTime}</span>
-                          {clienteCoords && (
-                            <span className="flex items-center gap-1 text-blue-600 font-medium">
-                              <Navigation size={11} />
-                              {formatKm(haversineKm(clienteCoords.lat, clienteCoords.lng, t.lat, t.lng))}
+                          {t.rating != null && (
+                            <span className="flex items-center gap-1">
+                              <Star size={11} className="text-yellow-400" fill="currentColor" />
+                              {t.rating} ({t.reviews})
                             </span>
+                          )}
+                          <span className="flex items-center gap-1"><MapPin size={11} />{t.location.split(',')[0]}</span>
+                          {t.responseTime && (
+                            <span className="flex items-center gap-1"><Clock size={11} />{t.responseTime}</span>
+                          )}
+                          {t._distanza != null && (
+                            <span className={`flex items-center gap-1 font-medium ${tecniciFuoriRaggio ? 'text-gray-400' : 'text-blue-600'}`}>
+                              <Navigation size={11} />
+                              {formatKm(t._distanza)}
+                            </span>
+                          )}
+                          {t.isReal && (
+                            <span className="badge bg-green-100 text-green-700 text-xs">Iscritto</span>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
@@ -7,7 +7,7 @@ import { useNotifiche } from '../hooks/useNotifiche'
 import { useLocation } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard'
 import ChatWindow from '../components/ChatWindow'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation, Tag, Plus, Trash2, Percent } from 'lucide-react'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation, Tag, Plus, Trash2, Percent, Camera, Phone, FileText, User, Eye, EyeOff } from 'lucide-react'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -29,6 +29,7 @@ const STATO_STYLE = {
   confermata: { badge: 'bg-blue-100 text-blue-700',    label: 'Confermata' },
   completata: { badge: 'bg-green-100 text-green-700',  label: 'Completata' },
   annullata:  { badge: 'bg-red-100 text-red-700',      label: 'Annullata' },
+  archiviato: { badge: 'bg-gray-100 text-gray-500',    label: 'Archiviato' },
 }
 
 const CAT_ICON = {
@@ -46,7 +47,9 @@ const SPEC_ICON = {
   'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
 }
 
-const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità']
+const SPECIALIZZAZIONI_LIST = ['Idraulico', 'Elettricista', 'Caldaista', 'Climatizzazione']
+
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo']
 
 const GIORNI_SETTIMANA = [
   { key: 'lun', label: 'Lunedì' },
@@ -69,12 +72,280 @@ const DEFAULT_DISP = {
 }
 
 const CAMPI_TARIFFE = [
-  { key: 'oraria',            label: 'Tariffa oraria',              unit: '€/ora', Icon: Euro,    desc: 'Costo per ogni ora di lavoro' },
-  { key: 'chiamata',          label: 'Tariffa di chiamata',         unit: '€',     Icon: MapPin,  desc: 'Costo fisso per ogni uscita/intervento' },
-  { key: 'urgenzaExtra',      label: 'Supplemento urgenza',         unit: '€',     Icon: AlertCircle, desc: 'Extra fisso per interventi urgenti' },
-  { key: 'festiviPerc',       label: 'Supplemento festivi/notturni',unit: '%',     Icon: Percent, desc: 'Percentuale aggiuntiva su festivi e notturni' },
-  { key: 'minimoIntervento',  label: 'Tariffa minima intervento',   unit: '€',     Icon: TrendingUp, desc: 'Importo minimo addebitato per ogni lavoro' },
+  { key: 'oraria',            label: 'Tariffa oraria',              unit: '€/ora', Icon: Euro,    desc: 'Costo per ogni ora di lavoro',          min: 20, max: 300, step: 5  },
+  { key: 'chiamata',          label: 'Costo fisso chiamata',        unit: '€',     Icon: MapPin,  desc: 'Costo fisso per ogni uscita/intervento', min: 0,  max: 150, step: 5  },
+  { key: 'urgenzaExtra',      label: 'Supplemento urgenza',         unit: '€',     Icon: AlertCircle, desc: 'Extra fisso per interventi urgenti',  min: 0,  max: 100, step: 5  },
+  { key: 'festiviPerc',       label: 'Supplemento festivi/notturni',unit: '%',     Icon: Percent, desc: 'Percentuale aggiuntiva su festivi e notturni', min: 0, max: 100, step: 5 },
+  { key: 'minimoIntervento',  label: 'Tariffa minima intervento',   unit: '€',     Icon: TrendingUp, desc: 'Importo minimo addebitato per ogni lavoro', min: 0, max: 300, step: 10 },
 ]
+
+function ProfiloTab({ user, updateUser }) {
+  const fileRef = useRef(null)
+  const [foto, setFoto] = useState(user.foto || null)
+  const [nome, setNome] = useState(user.nome || '')
+  const [cognome, setCognome] = useState(user.cognome || '')
+  const [telefono, setTelefono] = useState(user.telefono || '')
+  const [citta, setCitta] = useState(user.zona || '')
+  const [bio, setBio] = useState(user.bio || '')
+  const [specs, setSpecs] = useState(() => {
+    if (Array.isArray(user.specializzazioni) && user.specializzazioni.length) return user.specializzazioni
+    if (user.specializzazione) return [user.specializzazione]
+    return []
+  })
+  const [anniEsperienza, setAnniEsperienza] = useState(user.anniEsperienza ?? '')
+  const [tariffaOraria, setTariffaOraria] = useState(user.tariffe?.oraria ?? 65)
+  const [raggioKm, setRaggioKm] = useState(user.raggioOperativo ?? 50)
+  const [saved, setSaved] = useState(false)
+  const [fotoError, setFotoError] = useState('')
+
+  const handleFoto = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setFotoError('Immagine troppo grande. Usa un file inferiore a 2 MB.')
+      return
+    }
+    setFotoError('')
+    const reader = new FileReader()
+    reader.onload = (ev) => setFoto(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+
+  const toggleSpec = (spec) =>
+    setSpecs(prev => prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec])
+
+  const handleSave = () => {
+    const specPrimaria = specs.length > 0 ? specs.join(' & ') : (user.specializzazione || '')
+    updateUser({
+      foto,
+      nome: nome.trim() || user.nome,
+      cognome: cognome.trim() || user.cognome,
+      telefono: telefono.trim(),
+      zona: citta.trim() || user.zona,
+      bio: bio.trim(),
+      specializzazioni: specs,
+      specializzazione: specPrimaria,
+      anniEsperienza: anniEsperienza !== '' ? Number(anniEsperienza) : 0,
+      raggioOperativo: raggioKm,
+      tariffe: { ...(user.tariffe || {}), oraria: tariffaOraria },
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const avatarInitials = `${(nome[0] || user.nome[0] || '?').toUpperCase()}${(cognome[0] || user.cognome[0] || '').toUpperCase()}`
+
+  return (
+    <div className="space-y-7">
+      {/* Foto profilo */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <User size={15} className="text-orange-500" /> Foto profilo
+        </h3>
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-orange-100 flex items-center justify-center border border-gray-200">
+              {foto
+                ? <img src={foto} alt="profilo" className="w-full h-full object-cover" />
+                : <span className="text-2xl font-bold text-orange-600">{avatarInitials}</span>
+              }
+            </div>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="absolute -bottom-1.5 -right-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-1.5 shadow-md transition"
+            >
+              <Camera size={12} />
+            </button>
+          </div>
+          <div>
+            <button onClick={() => fileRef.current?.click()} className="btn-secondary text-sm py-2 px-4">
+              Cambia foto
+            </button>
+            {foto && (
+              <button onClick={() => setFoto(null)} className="block mt-2 text-xs text-red-500 hover:text-red-700 transition">
+                Rimuovi foto
+              </button>
+            )}
+            <p className="text-xs text-gray-400 mt-1.5">JPG, PNG — max 2 MB</p>
+            {fotoError && <p className="text-xs text-red-500 mt-1">{fotoError}</p>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFoto} />
+        </div>
+      </div>
+
+      {/* Dati personali */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <User size={15} className="text-blue-500" /> Dati personali
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Nome</label>
+            <input
+              type="text"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="Mario"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Cognome</label>
+            <input
+              type="text"
+              value={cognome}
+              onChange={e => setCognome(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="Rossi"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+              <Phone size={11} /> Telefono
+            </label>
+            <input
+              type="tel"
+              value={telefono}
+              onChange={e => setTelefono(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="+39 333 123 4567"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+              <MapPin size={11} /> Città / Zona operativa
+            </label>
+            <input
+              type="text"
+              value={citta}
+              onChange={e => setCitta(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="Milano"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+              <Briefcase size={11} /> Anni di esperienza
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="60"
+              value={anniEsperienza}
+              onChange={e => setAnniEsperienza(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="Es. 10"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Bio */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <FileText size={15} className="text-green-500" /> Descrizione professionale
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">Raccontati ai clienti: esperienza, punti di forza, aree di specializzazione</p>
+        <textarea
+          value={bio}
+          onChange={e => setBio(e.target.value)}
+          rows={4}
+          maxLength={500}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+          placeholder="Es. Tecnico con 15 anni di esperienza in impianti idraulici residenziali e commerciali…"
+        />
+        <p className="text-xs text-gray-400 text-right mt-1">{bio.length}/500</p>
+      </div>
+
+      {/* Specializzazioni */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Award size={15} className="text-orange-500" /> Specializzazioni
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">Seleziona le tue aree di competenza (una o più)</p>
+        <div className="flex flex-wrap gap-2">
+          {SPECIALIZZAZIONI_LIST.map(spec => {
+            const sel = specs.includes(spec)
+            return (
+              <button
+                key={spec}
+                onClick={() => toggleSpec(spec)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                  sel
+                    ? 'bg-orange-500 border-orange-500 text-white'
+                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-orange-300 hover:bg-orange-50'
+                }`}
+              >
+                {SPEC_ICON[spec]}
+                {spec}
+                {sel && <CheckCircle size={13} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Tariffa oraria */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Euro size={15} className="text-green-500" /> Tariffa oraria
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">La tariffa base visibile sul tuo profilo pubblico</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min="0"
+            max="500"
+            value={tariffaOraria}
+            onChange={e => setTariffaOraria(Number(e.target.value))}
+            className="w-28 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+          />
+          <span className="text-sm text-gray-500 font-medium">€/ora</span>
+        </div>
+      </div>
+
+      {/* Raggio operativo */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Navigation size={15} className="text-orange-500" /> Raggio operativo
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">Accetti lavori entro questa distanza dalla tua zona</p>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-600">Distanza massima</span>
+          <span className="font-bold text-orange-600 text-sm">{raggioKm} km</span>
+        </div>
+        <input
+          type="range"
+          min="5"
+          max="100"
+          step="5"
+          value={raggioKm}
+          onChange={e => setRaggioKm(Number(e.target.value))}
+          className="w-full accent-orange-500 cursor-pointer"
+        />
+        <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <span>5 km</span>
+          <span>100 km</span>
+        </div>
+      </div>
+
+      {/* Salva */}
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+        <button
+          onClick={handleSave}
+          className="btn-accent py-2.5 px-6 text-sm flex items-center gap-2"
+        >
+          <CheckCircle size={15} /> Salva modifiche
+        </button>
+        {saved && (
+          <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
+            <CheckCircle size={14} /> Profilo aggiornato!
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function TariffeTab({ user, updateUser }) {
   const initTariffe = {
@@ -135,23 +406,39 @@ function TariffeTab({ user, updateUser }) {
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Euro size={15} className="text-orange-500" /> Tariffe base
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {CAMPI_TARIFFE.map(({ key, label, unit, Icon, desc }) => (
+        <div className="space-y-4">
+          {CAMPI_TARIFFE.map(({ key, label, unit, Icon, desc, min, max, step }) => (
             <div key={key} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Icon size={13} className="text-gray-400 shrink-0" />
-                <span className="text-xs font-semibold text-gray-700">{label}</span>
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1.5">
+                  <Icon size={13} className="text-gray-400 shrink-0" />
+                  <span className="text-xs font-semibold text-gray-700">{label}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={min}
+                    max={max}
+                    value={tariffe[key]}
+                    onChange={e => setField(key, e.target.value)}
+                    className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                  <span className="text-xs text-gray-500 font-medium w-10">{unit}</span>
+                </div>
               </div>
-              <p className="text-xs text-gray-400 mb-3">{desc}</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  value={tariffe[key]}
-                  onChange={e => setField(key, e.target.value)}
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <span className="text-sm text-gray-500 font-medium">{unit}</span>
+              <p className="text-xs text-gray-400 mb-2">{desc}</p>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={tariffe[key]}
+                onChange={e => setField(key, e.target.value)}
+                className="w-full accent-orange-500 cursor-pointer h-1.5"
+              />
+              <div className="flex justify-between text-xs text-gray-300 mt-0.5">
+                <span>{min}{unit === '%' ? '%' : ' €'}</span>
+                <span>{max}{unit === '%' ? '%' : ' €'}</span>
               </div>
             </div>
           ))}
@@ -248,6 +535,7 @@ function TariffeTab({ user, updateUser }) {
 
 function DisponibilitaTab({ user, updateUser }) {
   const [disp, setDisp] = useState(user.disponibilita ?? DEFAULT_DISP)
+  const [disponibileOra, setDisponibileOra] = useState(user.disponibileOra !== false)
   const [saved, setSaved] = useState(false)
 
   const toggleGiorno = (key) =>
@@ -257,7 +545,7 @@ function DisponibilitaTab({ user, updateUser }) {
     setDisp(d => ({ ...d, [key]: { ...d[key], [field]: val } }))
 
   const handleSave = () => {
-    updateUser({ disponibilita: disp })
+    updateUser({ disponibilita: disp, disponibileOra })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -322,6 +610,34 @@ function DisponibilitaTab({ user, updateUser }) {
         </div>
       </div>
 
+      {/* Disponibile ora */}
+      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              {disponibileOra
+                ? <Eye size={14} className="text-green-600 shrink-0" />
+                : <EyeOff size={14} className="text-gray-400 shrink-0" />
+              }
+              <span className="text-sm font-semibold text-gray-700">Disponibile ora</span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              {disponibileOra
+                ? 'Il tuo profilo mostra "● Disponibile ora" ai clienti'
+                : 'Il tuo profilo mostra "● Limitata disponibilità" ai clienti'
+              }
+            </p>
+          </div>
+          <button
+            onClick={() => setDisponibileOra(v => !v)}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${disponibileOra ? 'bg-green-500' : 'bg-gray-300'}`}
+            aria-label="Disponibile ora"
+          >
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${disponibileOra ? 'left-5' : 'left-0.5'}`} />
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
         <button
           onClick={handleSave}
@@ -361,7 +677,7 @@ export default function DashboardTecnico() {
   const myBookingIds = miei.map(b => b.id)
   const myReviews = getByBookingIds(myBookingIds).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
-  const completati = miei.filter(b => b.stato === 'completata')
+  const completati = miei.filter(b => b.stato === 'completata' || b.stato === 'archiviato')
 
   const now = new Date()
   const guadagniMese = completati
@@ -419,9 +735,12 @@ export default function DashboardTecnico() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center font-bold text-orange-600 text-lg">
-            {user.nome[0]}{user.cognome[0]}
-          </div>
+          {user.foto
+            ? <img src={user.foto} alt="profilo" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+            : <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center font-bold text-orange-600 text-lg shrink-0">
+                {user.nome[0]}{user.cognome[0]}
+              </div>
+          }
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{user.nome} {user.cognome}</h1>
             <div className="flex items-center gap-2 mt-0.5">
@@ -688,6 +1007,11 @@ export default function DashboardTecnico() {
                 <DisponibilitaTab user={user} updateUser={updateUser} />
               )}
 
+              {/* Tab 6: Profilo */}
+              {tab === 6 && (
+                <ProfiloTab user={user} updateUser={updateUser} />
+              )}
+
               {/* Tab 2: Recensioni */}
               {tab === 2 && (
                 <>
@@ -755,7 +1079,21 @@ export default function DashboardTecnico() {
           </div>
 
           <div className="card p-6">
-            <h2 className="font-bold text-gray-900 text-lg mb-4">Il tuo profilo</h2>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden bg-orange-100 flex items-center justify-center shrink-0 border border-gray-200">
+                {user.foto
+                  ? <img src={user.foto} alt="profilo" className="w-full h-full object-cover" />
+                  : <span className="text-xl font-bold text-orange-600">{user.nome[0]}{user.cognome[0]}</span>
+                }
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-bold text-gray-900 text-base leading-tight">{user.nome} {user.cognome}</h2>
+                {user.bio
+                  ? <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{user.bio}</p>
+                  : <p className="text-xs text-gray-400 mt-0.5 italic">Nessuna bio</p>
+                }
+              </div>
+            </div>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2 text-gray-600">
                 <Award size={16} className="text-orange-500" />
@@ -810,6 +1148,44 @@ export default function DashboardTecnico() {
                 Accetti lavori entro <span className="font-semibold text-gray-600">{raggioKm} km</span> dalla tua zona operativa.
               </p>
             </div>
+
+            {/* Toggle disponibilità pubblica */}
+            <div className="pt-4 border-t border-gray-100 mt-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {user.attivo !== false
+                      ? <Eye size={14} className="text-green-600 shrink-0" />
+                      : <EyeOff size={14} className="text-gray-400 shrink-0" />
+                    }
+                    <span className="text-sm font-semibold text-gray-700">Disponibile per lavori</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    {user.attivo !== false
+                      ? 'Il tuo profilo è visibile ai clienti'
+                      : 'Sei in pausa — non appari nella lista pubblica'
+                    }
+                  </p>
+                </div>
+                <button
+                  onClick={() => updateUser({ attivo: !(user.attivo !== false) })}
+                  className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+                    user.attivo !== false ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                  aria-label="Attiva/disattiva disponibilità"
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
+                    user.attivo !== false ? 'left-5' : 'left-0.5'
+                  }`} />
+                </button>
+              </div>
+              {user.attivo === false && (
+                <div className="mt-2 flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <EyeOff size={12} className="text-amber-600 shrink-0" />
+                  <p className="text-xs text-amber-700 font-medium">Profilo nascosto dai clienti</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Notifiche push */}
@@ -841,7 +1217,7 @@ export default function DashboardTecnico() {
           <div className="card p-6 bg-gradient-to-br from-blue-900 to-blue-800 text-white">
             <h3 className="font-bold mb-2">Completa il profilo</h3>
             <p className="text-blue-100 text-sm mb-4">Aggiungi foto e descrizione per ricevere più richieste.</p>
-            <button className="btn-accent text-sm py-2.5 w-full">Aggiorna profilo</button>
+            <button onClick={() => setTab(6)} className="btn-accent text-sm py-2.5 w-full">Aggiorna profilo</button>
           </div>
         </div>
       </div>
