@@ -41,14 +41,19 @@ const CAT_ICON = {
 }
 
 const SPEC_ICON = {
+  'Idraulica':              <Wrench size={20} className="text-blue-600" />,
+  'Elettricità':            <Zap size={20} className="text-yellow-600" />,
+  'Caldaie':                <Wrench size={20} className="text-red-600" />,
+  'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
+  'Termoidraulica':         <Wrench size={20} className="text-purple-600" />,
   'Idraulico':              <Wrench size={20} className="text-blue-600" />,
   'Elettricista':           <Zap size={20} className="text-yellow-600" />,
   'Idraulico & Elettricista': <Wrench size={20} className="text-purple-600" />,
   'Caldaista':              <Wrench size={20} className="text-red-600" />,
-  'Climatizzazione':        <Zap size={20} className="text-cyan-600" />,
 }
 
-const SPECIALIZZAZIONI_LIST = ['Idraulico', 'Elettricista', 'Caldaista', 'Climatizzazione']
+const SPECIALIZZAZIONI_LIST = ['Idraulica', 'Elettricità', 'Caldaie', 'Climatizzazione', 'Termoidraulica']
+const CERTIFICAZIONI_PREDEFINITE = ['D.M. 37/08', 'CEI 64-8', 'Patentino Gas', 'F-GAS', 'UNI 11528']
 
 const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo', 'Portfolio', 'Guadagni']
 const COMMISSIONE_PERC = 0.05
@@ -90,10 +95,21 @@ function ProfiloTab({ user, updateUser }) {
   const [citta, setCitta] = useState(user.zona || '')
   const [bio, setBio] = useState(user.bio || '')
   const [specs, setSpecs] = useState(() => {
-    if (Array.isArray(user.specializzazioni) && user.specializzazioni.length) return user.specializzazioni
-    if (user.specializzazione) return [user.specializzazione]
+    if (Array.isArray(user.specializzazioni) && user.specializzazioni.length)
+      return [...new Set(user.specializzazioni)]
+    if (user.specializzazione)
+      return [...new Set(user.specializzazione.split(' & ').map(s => s.trim()).filter(Boolean))]
     return []
   })
+  const [nuovaSpec, setNuovaSpec] = useState('')
+  const [certs, setCerts] = useState(() => {
+    if (Array.isArray(user.certificazioni) && user.certificazioni.length)
+      return [...new Set(user.certificazioni)]
+    if (typeof user.certificazioni === 'string' && user.certificazioni.trim())
+      return [...new Set(user.certificazioni.split(',').map(s => s.trim()).filter(Boolean))]
+    return []
+  })
+  const [nuovaCert, setNuovaCert] = useState('')
   const [anniEsperienza, setAnniEsperienza] = useState(user.anniEsperienza ?? '')
   const [tariffaOraria, setTariffaOraria] = useState(user.tariffe?.oraria ?? 65)
   const [raggioKm, setRaggioKm] = useState(user.raggioOperativo ?? 50)
@@ -113,11 +129,31 @@ function ProfiloTab({ user, updateUser }) {
     reader.readAsDataURL(file)
   }
 
-  const toggleSpec = (spec) =>
-    setSpecs(prev => prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec])
+  const removeSpec = (spec) => setSpecs(prev => prev.filter(s => s !== spec))
+  const addSpec = (spec) => {
+    const val = spec.trim()
+    if (!val || specs.some(s => s.toLowerCase() === val.toLowerCase())) return
+    setSpecs(prev => [...new Set([...prev, val])])
+  }
+  const addCustomSpec = () => {
+    addSpec(nuovaSpec)
+    setNuovaSpec('')
+  }
+
+  const removeCert = (cert) => setCerts(prev => prev.filter(c => c !== cert))
+  const addCert = (cert) => {
+    if (cert && !certs.includes(cert)) setCerts(prev => [...prev, cert])
+  }
+  const addCustomCert = () => {
+    const val = nuovaCert.trim()
+    if (!val || certs.includes(val)) return
+    setCerts(prev => [...prev, val])
+    setNuovaCert('')
+  }
 
   const handleSave = () => {
-    const specPrimaria = specs.length > 0 ? specs.join(' & ') : (user.specializzazione || '')
+    const uniqueSpecs = [...new Set(specs)]
+    const specPrimaria = uniqueSpecs.length > 0 ? uniqueSpecs.join(' & ') : (user.specializzazione || '')
     updateUser({
       foto,
       nome: nome.trim() || user.nome,
@@ -125,8 +161,9 @@ function ProfiloTab({ user, updateUser }) {
       telefono: telefono.trim(),
       zona: citta.trim() || user.zona,
       bio: bio.trim(),
-      specializzazioni: specs,
+      specializzazioni: uniqueSpecs,
       specializzazione: specPrimaria,
+      certificazioni: certs,
       anniEsperienza: anniEsperienza !== '' ? Number(anniEsperienza) : 0,
       raggioOperativo: raggioKm,
       tariffe: { ...(user.tariffe || {}), oraria: tariffaOraria },
@@ -254,7 +291,7 @@ function ProfiloTab({ user, updateUser }) {
           rows={4}
           maxLength={500}
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
-          placeholder="Es. Tecnico con 15 anni di esperienza in impianti idraulici residenziali e commerciali…"
+          placeholder="Raccontati ai clienti: esperienza, punti di forza, aree di specializzazione…"
         />
         <p className="text-xs text-gray-400 text-right mt-1">{bio.length}/500</p>
       </div>
@@ -264,26 +301,93 @@ function ProfiloTab({ user, updateUser }) {
         <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
           <Award size={15} className="text-orange-500" /> Specializzazioni
         </h3>
-        <p className="text-xs text-gray-400 mb-3">Seleziona le tue aree di competenza (una o più)</p>
-        <div className="flex flex-wrap gap-2">
-          {SPECIALIZZAZIONI_LIST.map(spec => {
-            const sel = specs.includes(spec)
-            return (
-              <button
-                key={spec}
-                onClick={() => toggleSpec(spec)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                  sel
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-orange-300 hover:bg-orange-50'
-                }`}
-              >
-                {SPEC_ICON[spec]}
-                {spec}
-                {sel && <CheckCircle size={13} />}
-              </button>
-            )
-          })}
+        <p className="text-xs text-gray-400 mb-3">Seleziona o aggiungi le tue aree di competenza</p>
+        {specs.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {specs.map(s => (
+              <span key={s} className="flex items-center gap-1.5 bg-orange-100 border border-orange-200 text-orange-800 text-xs font-medium px-2.5 py-1.5 rounded-xl">
+                {SPEC_ICON[s]}
+                {s}
+                <button onClick={() => removeSpec(s)} className="text-orange-400 hover:text-red-500 transition ml-0.5">
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {SPECIALIZZAZIONI_LIST.filter(s => !specs.some(e => e.toLowerCase() === s.toLowerCase())).map(s => (
+            <button
+              key={s}
+              onClick={() => addSpec(s)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700 transition"
+            >
+              <Plus size={10} /> {s}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+          <input
+            className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+            placeholder="Altra specializzazione..."
+            value={nuovaSpec}
+            onChange={e => setNuovaSpec(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addCustomSpec()}
+          />
+          <button
+            onClick={addCustomSpec}
+            className="shrink-0 p-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition"
+            title="Aggiungi"
+          >
+            <Plus size={13} />
+          </button>
+        </div>
+      </div>
+
+      {/* Certificazioni */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <CheckCircle size={15} className="text-green-500" /> Certificazioni
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">Aggiungi le tue certificazioni professionali</p>
+        {certs.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {certs.map(c => (
+              <span key={c} className="flex items-center gap-1.5 bg-green-100 border border-green-200 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-xl">
+                {c}
+                <button onClick={() => removeCert(c)} className="text-green-500 hover:text-red-500 transition ml-0.5">
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {CERTIFICAZIONI_PREDEFINITE.filter(c => !certs.includes(c)).map(c => (
+            <button
+              key={c}
+              onClick={() => addCert(c)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-green-400 hover:bg-green-50 hover:text-green-700 transition"
+            >
+              <Plus size={10} /> {c}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+          <input
+            className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+            placeholder="Altra certificazione..."
+            value={nuovaCert}
+            onChange={e => setNuovaCert(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addCustomCert()}
+          />
+          <button
+            onClick={addCustomCert}
+            className="shrink-0 p-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+            title="Aggiungi"
+          >
+            <Plus size={13} />
+          </button>
         </div>
       </div>
 
@@ -933,6 +1037,8 @@ export default function DashboardTecnico() {
   const [tab, setTab] = useState(0)
   const [chatBookingId, setChatBookingId] = useState(null)
   const [raggioKm, setRaggioKm] = useState(user.raggioOperativo ?? 50)
+  const [editingBio, setEditingBio] = useState(false)
+  const [bioInlineDraft, setBioInlineDraft] = useState(user.bio || '')
 
   const handleRaggioChange = (val) => {
     setRaggioKm(val)
@@ -1368,12 +1474,50 @@ export default function DashboardTecnico() {
                   : <span className="text-xl font-bold text-orange-600">{user.nome[0]}{user.cognome[0]}</span>
                 }
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-gray-900 text-base leading-tight">{user.nome} {user.cognome}</h2>
-                {user.bio
-                  ? <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{user.bio}</p>
-                  : <p className="text-xs text-gray-400 mt-0.5 italic">Nessuna bio</p>
-                }
+                {editingBio ? (
+                  <div className="mt-1.5">
+                    <textarea
+                      autoFocus
+                      value={bioInlineDraft}
+                      onChange={e => setBioInlineDraft(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      className="w-full border border-orange-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                      placeholder="Raccontati ai clienti…"
+                    />
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => { updateUser({ bio: bioInlineDraft.trim() }); setEditingBio(false) }}
+                        className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1 rounded-lg transition"
+                      >
+                        Salva
+                      </button>
+                      <button
+                        onClick={() => setEditingBio(false)}
+                        className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 transition"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </div>
+                ) : user.bio ? (
+                  <p
+                    onClick={() => { setBioInlineDraft(user.bio); setEditingBio(true) }}
+                    className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed cursor-pointer hover:text-orange-600 transition"
+                    title="Clicca per modificare"
+                  >
+                    {user.bio}
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => { setBioInlineDraft(''); setEditingBio(true) }}
+                    className="text-xs text-gray-400 mt-0.5 italic hover:text-orange-500 transition flex items-center gap-1"
+                  >
+                    <Edit2 size={10} /> Aggiungi bio
+                  </button>
+                )}
               </div>
             </div>
             <div className="space-y-3 text-sm">
@@ -1387,12 +1531,12 @@ export default function DashboardTecnico() {
                 <span className="font-medium">Zona:</span>
                 <span>{user.zona || '—'}</span>
               </div>
-              {user.certificazioni && (
+              {(Array.isArray(user.certificazioni) ? user.certificazioni.length > 0 : !!user.certificazioni) && (
                 <div className="flex items-start gap-2 text-gray-600">
                   <CheckCircle size={16} className="text-green-500 mt-0.5 shrink-0" />
                   <div>
                     <span className="font-medium">Certificazioni: </span>
-                    <span>{user.certificazioni}</span>
+                    <span>{Array.isArray(user.certificazioni) ? user.certificazioni.join(', ') : user.certificazioni}</span>
                   </div>
                 </div>
               )}
