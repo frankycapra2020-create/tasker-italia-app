@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { TECNICI_EVENT } from './TechniciansContext'
 
 const AuthContext = createContext(null)
 
@@ -43,6 +44,7 @@ export function AuthProvider({ children }) {
     delete session.password
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     setUser(session)
+    if (ruolo === 'tecnico') window.dispatchEvent(new Event(TECNICI_EVENT))
     return session
   }
 
@@ -69,6 +71,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem(USERS_KEY, JSON.stringify(users))
     }
     setUser(updated)
+    if (user.ruolo === 'tecnico') window.dispatchEvent(new Event(TECNICI_EVENT))
   }
 
   const logout = () => {
