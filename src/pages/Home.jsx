@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, Quote, Euro, ChevronRight } from 'lucide-react'
+import { Shield, Clock, Star, Zap, Wrench, ThermometerSun, Wind, ArrowRight, Quote, Euro, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react'
 import { services } from '../data/services'
 import { technicians } from '../data/technicians'
 import { tutorials } from '../data/tutorials'
@@ -229,6 +229,56 @@ export default function Home() {
           <Link to="/tecnici" className="btn-secondary">
             Leggi tutte le recensioni
           </Link>
+        </div>
+      </section>
+
+      {/* La nostra garanzia */}
+      <section className="bg-gradient-to-br from-green-50 to-emerald-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <span className="badge bg-green-100 text-green-700 mb-3 inline-flex items-center gap-1.5">
+              <Shield size={12} /> Garanzia ProntoTecnico
+            </span>
+            <h2 className="text-3xl font-bold text-gray-900 mt-2">La nostra garanzia soddisfatti</h2>
+            <p className="text-gray-500 mt-2 max-w-xl mx-auto">
+              Ogni lavoro eseguito da un tecnico verificato è coperto dalla nostra garanzia.
+              Se non sei soddisfatto, hai 24 ore per aprire una disputa.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {[
+              {
+                icon: <CheckCircle size={28} className="text-green-600" />,
+                title: 'Lavoro Garantito ✓',
+                desc: 'Ogni tecnico verificato espone il badge "Lavoro Garantito". Significa che il lavoro è coperto dalla nostra garanzia di qualità.',
+                bg: 'bg-green-100',
+              },
+              {
+                icon: <AlertCircle size={28} className="text-orange-500" />,
+                title: 'Disputa entro 24 ore',
+                desc: 'Non sei soddisfatto del lavoro? Hai 24 ore dal completamento per aprire una disputa. Il nostro team interverrà entro 48 ore.',
+                bg: 'bg-orange-100',
+              },
+              {
+                icon: <Euro size={28} className="text-blue-600" />,
+                title: 'Rimborso garantito',
+                desc: 'Se la disputa viene accettata, ricevi un rimborso totale o parziale. Zero rischi per il cliente, massima trasparenza.',
+                bg: 'bg-blue-100',
+              },
+            ].map(item => (
+              <div key={item.title} className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100 flex flex-col gap-4">
+                <div className={`${item.bg} rounded-xl p-3 w-fit`}>{item.icon}</div>
+                <h3 className="font-bold text-gray-900 text-lg">{item.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 bg-white rounded-full px-6 py-3 shadow-sm border border-green-100 text-sm text-green-700 font-semibold">
+              <Shield size={16} className="text-green-600" />
+              Garanzia attiva su tutti i tecnici con badge "Verificato"
+            </div>
+          </div>
         </div>
       </section>
 

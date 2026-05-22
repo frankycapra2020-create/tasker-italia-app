@@ -7,7 +7,8 @@ import { useNotifiche } from '../hooks/useNotifiche'
 import { useLocation } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard'
 import ChatWindow from '../components/ChatWindow'
-import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation, Tag, Plus, Trash2, Percent, Camera, Phone, FileText, User, Eye, EyeOff } from 'lucide-react'
+import { Briefcase, Star, Euro, MapPin, Award, Clock, TrendingUp, CheckCircle, Wrench, Zap, Calendar, Check, X, AlertCircle, MessageSquare, Bell, Navigation, Tag, Plus, Trash2, Percent, Camera, Phone, FileText, User, Eye, EyeOff, Image, Edit2 } from 'lucide-react'
+import { useFavorites } from '../context/FavoritesContext'
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const formatDateIT = (str) => {
@@ -49,7 +50,7 @@ const SPEC_ICON = {
 
 const SPECIALIZZAZIONI_LIST = ['Idraulico', 'Elettricista', 'Caldaista', 'Climatizzazione']
 
-const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo']
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo', 'Portfolio']
 
 const GIORNI_SETTIMANA = [
   { key: 'lun', label: 'Lunedì' },
@@ -655,6 +656,143 @@ function DisponibilitaTab({ user, updateUser }) {
   )
 }
 
+function PortfolioTab({ tecnicoId }) {
+  const { getPortfolio, addPhoto, removePhoto, updateCaption } = useFavorites()
+  const portfolio = getPortfolio(tecnicoId)
+  const [editingIdx, setEditingIdx] = useState(null)
+  const [captionDraft, setCaptionDraft] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (portfolio.length >= 6) return
+    setUploading(true)
+    await addPhoto(tecnicoId, file)
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  const startEdit = (i) => {
+    setEditingIdx(i)
+    setCaptionDraft(portfolio[i]?.didascalia || '')
+  }
+
+  const saveCaption = (i) => {
+    updateCaption(tecnicoId, i, captionDraft.trim())
+    setEditingIdx(null)
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+          <Image size={15} className="text-orange-500" /> Portfolio lavori
+        </h3>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Carica fino a 6 foto dei tuoi lavori migliori. Le foto saranno visibili nel tuo profilo pubblico per convincere i clienti a sceglierti.
+        </p>
+      </div>
+
+      {portfolio.length === 0 && (
+        <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-2xl">
+          <Image size={36} className="text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-400 font-medium text-sm mb-1">Nessuna foto nel portfolio</p>
+          <p className="text-gray-400 text-xs mb-4">Aggiungi foto dei tuoi lavori per aumentare le prenotazioni</p>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="btn-accent text-sm py-2 px-5"
+          >
+            Carica prima foto
+          </button>
+        </div>
+      )}
+
+      {portfolio.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {portfolio.map((p, i) => (
+            <div key={i} className="relative group rounded-xl overflow-hidden border border-gray-100">
+              <img src={p.dataUrl} alt={p.didascalia || `Foto ${i + 1}`} className="w-full aspect-square object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                <button
+                  onClick={() => startEdit(i)}
+                  className="bg-white text-gray-800 rounded-full p-2 hover:bg-gray-100 shadow"
+                  title="Modifica didascalia"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  onClick={() => removePhoto(tecnicoId, i)}
+                  className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 shadow"
+                  title="Rimuovi foto"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {p.didascalia && (
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                  <p className="text-white text-xs line-clamp-2">{p.didascalia}</p>
+                </div>
+              )}
+            </div>
+          ))}
+          {portfolio.length < 6 && (
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-orange-300 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-orange-500 transition-colors"
+            >
+              {uploading ? (
+                <span className="text-xs">Caricamento…</span>
+              ) : (
+                <>
+                  <Plus size={22} />
+                  <span className="text-xs font-medium">Aggiungi foto</span>
+                  <span className="text-xs text-gray-300">{portfolio.length}/6</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+
+      {/* Modifica didascalia */}
+      {editingIdx !== null && portfolio[editingIdx] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h4 className="font-bold text-gray-900 mb-3">Modifica didascalia</h4>
+            <img src={portfolio[editingIdx].dataUrl} alt="" className="w-full aspect-video object-cover rounded-xl mb-4" />
+            <textarea
+              value={captionDraft}
+              onChange={e => setCaptionDraft(e.target.value)}
+              maxLength={120}
+              rows={3}
+              placeholder="Descrivi questo lavoro (es. Sostituzione impianto idrico, Milano 2024)"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => saveCaption(editingIdx)} className="btn-accent text-sm py-2 px-5 flex-1">
+                Salva
+              </button>
+              <button onClick={() => setEditingIdx(null)} className="btn-secondary text-sm py-2 px-4">
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 flex items-start gap-2">
+        <AlertCircle size={14} className="shrink-0 mt-0.5" />
+        <span>Le foto vengono salvate localmente. Carica immagini di alta qualità dei tuoi lavori completati per aumentare la fiducia dei clienti.</span>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardTecnico() {
   const { user, logout, updateUser } = useAuth()
   const location = useLocation()
@@ -1010,6 +1148,11 @@ export default function DashboardTecnico() {
               {/* Tab 6: Profilo */}
               {tab === 6 && (
                 <ProfiloTab user={user} updateUser={updateUser} />
+              )}
+
+              {/* Tab 7: Portfolio */}
+              {tab === 7 && (
+                <PortfolioTab tecnicoId={user.id} />
               )}
 
               {/* Tab 2: Recensioni */}

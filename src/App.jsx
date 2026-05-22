@@ -4,6 +4,8 @@ import { BookingProvider } from './context/BookingContext'
 import { ReviewProvider } from './context/ReviewContext'
 import { ChatProvider } from './context/ChatContext'
 import { GeoProvider } from './context/GeoContext'
+import { TechniciansProvider } from './context/TechniciansContext'
+import { FavoritesProvider } from './context/FavoritesContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
@@ -23,10 +25,12 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <TechniciansProvider>
         <BookingProvider>
           <ReviewProvider>
             <ChatProvider>
             <GeoProvider>
+            <FavoritesProvider>
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-1">
@@ -60,10 +64,12 @@ function App() {
               </main>
               <Footer />
             </div>
+            </FavoritesProvider>
             </GeoProvider>
             </ChatProvider>
           </ReviewProvider>
         </BookingProvider>
+        </TechniciansProvider>
       </AuthProvider>
     </BrowserRouter>
   )

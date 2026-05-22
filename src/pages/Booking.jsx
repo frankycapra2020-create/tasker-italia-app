@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useGeo } from '../context/GeoContext'
@@ -266,22 +266,27 @@ export default function Booking() {
   const geo = useGeo()
   const { allTecnici } = useTechnicians()
   const navigate = useNavigate()
+  const location = useLocation()
+  const riprenota = location.state?.riprenota || null
 
   const [step, setStep] = useState(1)
   const [completedBooking, setCompletedBooking] = useState(null)
   const [errors, setErrors] = useState({})
 
-  // Step 1
-  const [categoria, setCategoria] = useState(null)
-  const [servizio, setServizio] = useState('')
-  const [oreStimate, setOreStimate] = useState(2)
+  // Step 1 — pre-fill da riprenota se disponibile
+  const [categoria, setCategoria] = useState(riprenota?.categoriaId || null)
+  const [servizio, setServizio] = useState(riprenota?.servizio || '')
+  const [oreStimate, setOreStimate] = useState(riprenota?.oreStimate || 2)
   const [urgenza, setUrgenza] = useState('normale')
   const [indirizzo, setIndirizzo] = useState('')
   const [citta, setCitta] = useState('')
   const [descrizione, setDescrizione] = useState('')
 
-  // Step 2
-  const [tecnico, setTecnico] = useState(null)
+  // Step 2 — pre-seleziona tecnico da riprenota
+  const [tecnico, setTecnico] = useState(() => {
+    if (!riprenota?.tecnicoId) return null
+    return allTecnici.find(t => t.id === riprenota.tecnicoId) || null
+  })
   const [dataSelezionata, setDataSelezionata] = useState(null)
   const [oraSelezionata, setOraSelezionata] = useState(null)
 
@@ -514,6 +519,16 @@ export default function Booking() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Banner riprenota */}
+      {riprenota && (
+        <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-sm">
+          <CheckCircle size={16} className="text-blue-600 shrink-0" />
+          <span className="text-blue-800 font-medium">
+            Stai riprenotando: <strong>{riprenota.servizio}</strong>
+            {tecnico && <> con <strong>{tecnico.name}</strong></>}
+          </span>
+        </div>
+      )}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Prenota un intervento</h1>
         <p className="text-gray-500">Preventivo immediato · Tecnici verificati · Conferma in pochi minuti</p>

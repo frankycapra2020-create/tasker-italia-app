@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from 'react'
-import { Search, Users, Navigation, MapPin, Map, List, Loader } from 'lucide-react'
-import { technicians } from '../data/technicians'
+import { Link } from 'react-router-dom'
+import { Search, Users, Navigation, MapPin, Map, List, Loader, Shield, CheckCircle } from 'lucide-react'
+import { useTechnicians } from '../context/TechniciansContext'
 import TechnicianCard from '../components/TechnicianCard'
 import { useReview } from '../context/ReviewContext'
 import { useGeo } from '../context/GeoContext'
@@ -26,6 +27,7 @@ const GEO_STATUS_MSG = {
 }
 
 export default function Technicians() {
+  const { allTecnici } = useTechnicians()
   const { getAvgRating } = useReview()
   const { position, status, requestLocation } = useGeo()
 
@@ -40,32 +42,38 @@ export default function Technicians() {
 
   const liveRating = (t) => {
     const avg = getAvgRating(t.id)
-    return avg !== null ? avg : t.rating
+    return avg !== null ? avg : t.rating  // may return null for new registered tecnici
   }
 
-  // Calcola distanza per ogni tecnico
-  const techsWithDist = technicians.map(t => ({
+  const techsWithDist = allTecnici.map(t => ({
     ...t,
     distanzaKm: position && t.lat ? haversineKm(position.lat, position.lng, t.lat, t.lng) : null,
   }))
 
   const filtered = techsWithDist
     .filter(t => {
-      const matchSpec = activeSpec === 'Tutti' || t.specializations.includes(activeSpec)
+      const matchSpec = activeSpec === 'Tutti' || t.specializations.some(s =>
+        s.toLowerCase().includes(activeSpec.toLowerCase()) ||
+        activeSpec.toLowerCase().includes(s.toLowerCase())
+      )
       const matchSearch =
         t.name.toLowerCase().includes(search.toLowerCase()) ||
         t.location.toLowerCase().includes(search.toLowerCase()) ||
         t.specializations.some(s => s.toLowerCase().includes(search.toLowerCase()))
       const matchAvail = !onlyAvailable || t.available
       const rating = liveRating(t)
-      const matchRating = minRating === 0 ? true : minRating === 5 ? rating >= 4.95 : rating >= minRating
+      const matchRating = minRating === 0
+        ? true
+        : rating === null
+          ? false
+          : minRating === 5 ? rating >= 4.95 : rating >= minRating
       const matchVicino = !viciniAMe || !position || (t.distanzaKm !== null && t.distanzaKm <= raggio)
       return matchSpec && matchSearch && matchAvail && matchRating && matchVicino
     })
     .sort((a, b) => {
       if (sortBy === 'distanza' && a.distanzaKm !== null && b.distanzaKm !== null)
         return a.distanzaKm - b.distanzaKm
-      if (sortBy === 'rating') return liveRating(b) - liveRating(a)
+      if (sortBy === 'rating') return (liveRating(b) ?? -1) - (liveRating(a) ?? -1)
       if (sortBy === 'price') return a.pricePerHour - b.pricePerHour
       if (sortBy === 'jobs') return b.completedJobs - a.completedJobs
       return 0
@@ -218,6 +226,18 @@ export default function Technicians() {
         </div>
       </div>
 
+      {/* Banner garanzia */}
+      <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-xl">
+        <Shield size={18} className="text-green-600 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-semibold text-green-800">La nostra garanzia soddisfatti</span>
+          <span className="text-xs text-green-600 ml-2">Se non sei soddisfatto, apri una disputa entro 24 ore dal completamento.</span>
+        </div>
+        <div className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1.5 rounded-full">
+          <CheckCircle size={12} /> Lavori garantiti
+        </div>
+      </div>
+
       {/* Vista lista */}
       {!showMappa && (
         filtered.length > 0 ? (
@@ -245,9 +265,12 @@ export default function Technicians() {
               </div>
             ) : filtered.map(t => (
               <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-3 hover:border-blue-200 transition">
-                <div className={`${t.avatarColor} text-white text-sm font-bold w-11 h-11 rounded-xl flex items-center justify-center shrink-0`}>
-                  {t.avatar}
-                </div>
+                {t.foto
+                  ? <img src={t.foto} alt={t.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+                  : <div className={`${t.avatarColor} text-white text-sm font-bold w-11 h-11 rounded-xl flex items-center justify-center shrink-0`}>
+                      {t.avatar}
+                    </div>
+                }
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-semibold text-sm text-gray-800 truncate">{t.name}</span>
@@ -266,9 +289,20 @@ export default function Technicians() {
                     <span className="text-xs text-gray-400">€{t.pricePerHour}/h</span>
                   </div>
                 </div>
-                <a href="/preventivo" className="shrink-0 text-xs bg-blue-800 hover:bg-blue-900 text-white font-semibold px-2.5 py-1.5 rounded-lg transition">
-                  Prenota
-                </a>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Link
+                    to={`/tecnici/${t.id}`}
+                    className="text-xs text-blue-700 font-semibold border border-blue-200 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition text-center"
+                  >
+                    Profilo
+                  </Link>
+                  <Link
+                    to="/preventivo"
+                    className="text-xs bg-blue-800 hover:bg-blue-900 text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-center"
+                  >
+                    Prenota
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
