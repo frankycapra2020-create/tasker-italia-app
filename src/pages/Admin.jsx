@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import {
   Euro, Users, Briefcase, TrendingUp, Shield, LogOut,
-  CheckCircle, AlertCircle, Calendar, ArrowRight, BarChart2,
+  CheckCircle, AlertCircle, Calendar, ArrowRight, BarChart2, Mail,
 } from 'lucide-react'
+import { getEmailLog } from '../services/emailService'
 
 const ADMIN_EMAIL    = 'admin@prontotecnico.it'
 const ADMIN_PASSWORD = 'admin2024'
@@ -120,6 +121,92 @@ function MiniBarChart({ data, maxValue, color = 'bg-blue-600' }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const TIPO_EMAIL = {
+  conferma_prenotazione: { label: 'Conferma prenotazione', color: 'bg-blue-100 text-blue-700' },
+  nuova_richiesta_tecnico: { label: 'Richiesta al tecnico', color: 'bg-orange-100 text-orange-700' },
+  richiesta_recensione: { label: 'Richiesta recensione', color: 'bg-green-100 text-green-700' },
+}
+
+const STATO_EMAIL = {
+  inviata:  { color: 'bg-green-100 text-green-700',  label: 'Inviata' },
+  simulata: { color: 'bg-yellow-100 text-yellow-700', label: 'Simulata' },
+  errore:   { color: 'bg-red-100 text-red-700',       label: 'Errore' },
+}
+
+function EmailLog() {
+  const [page, setPage] = useState(0)
+  const PAGE = 20
+  const log = useMemo(() => getEmailLog(), [])
+
+  const fmtTs = (iso) => {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return `${d.toLocaleDateString('it-IT')} ${d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
+  }
+
+  const paginated = log.slice(page * PAGE, (page + 1) * PAGE)
+  const totalPages = Math.ceil(log.length / PAGE)
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+          <Mail size={18} className="text-blue-600" />
+          Email inviate
+          <span className="text-gray-400 font-normal text-base ml-2">({log.length})</span>
+        </h2>
+        {log.length > 0 && (
+          <span className="text-xs text-gray-400">Ultimi 200 record · Pagina {page + 1}/{Math.max(totalPages, 1)}</span>
+        )}
+      </div>
+
+      {log.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <Mail size={40} className="mx-auto mb-3 opacity-20" />
+          <p className="font-medium">Nessuna email registrata</p>
+          <p className="text-sm mt-1">Le email inviate o simulate appariranno qui</p>
+        </div>
+      ) : (
+        <>
+          <div className="hidden md:grid grid-cols-[1.5fr_1.5fr_auto_auto_auto] gap-3 px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-2">
+            <span>Tipo</span>
+            <span>Destinatario</span>
+            <span>Prenotazione</span>
+            <span>Data/Ora</span>
+            <span>Stato</span>
+          </div>
+
+          <div className="space-y-1">
+            {paginated.map((e, i) => {
+              const tipo = TIPO_EMAIL[e.tipo] || { label: e.tipo, color: 'bg-gray-100 text-gray-600' }
+              const stato = STATO_EMAIL[e.stato] || { label: e.stato, color: 'bg-gray-100 text-gray-600' }
+              return (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-[1.5fr_1.5fr_auto_auto_auto] gap-2 md:gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition text-sm border border-transparent hover:border-gray-100">
+                  <span className={`badge ${tipo.color} text-xs self-center w-fit`}>{tipo.label}</span>
+                  <span className="text-gray-700 text-xs self-center truncate">{e.destinatario || '—'}</span>
+                  <span className="text-gray-500 text-xs self-center font-mono">{e.prenotazioneId || '—'}</span>
+                  <span className="text-gray-400 text-xs self-center whitespace-nowrap">{fmtTs(e.timestamp)}</span>
+                  <span className={`badge ${stato.color} text-xs self-center w-fit`}>{stato.label}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+                className="text-sm btn-secondary py-2 px-4 disabled:opacity-40">← Precedente</button>
+              <span className="text-xs text-gray-500">{page * PAGE + 1}–{Math.min((page + 1) * PAGE, log.length)} di {log.length}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+                className="text-sm btn-secondary py-2 px-4 disabled:opacity-40">Successivo →</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -523,6 +610,9 @@ export default function Admin() {
             )}
           </div>
         </div>
+
+        {/* Email inviate */}
+        <EmailLog />
 
       </div>
     </div>

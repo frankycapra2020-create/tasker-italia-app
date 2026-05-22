@@ -5,6 +5,7 @@ import { useBooking } from '../context/BookingContext'
 import { useGeo } from '../context/GeoContext'
 import { useTechnicians } from '../context/TechniciansContext'
 import { getCittaCoords, haversineKm, formatKm } from '../utils/geo'
+import { inviaEmailConferma, inviaEmailTecnico } from '../services/emailService'
 import {
   Wrench, Zap, Thermometer, Wind, Star, MapPin, Clock,
   ChevronLeft, ChevronRight, CheckCircle, AlertCircle,
@@ -456,6 +457,7 @@ export default function Booking() {
       clienteTelefono: telefono,
       tecnicoId: tecnico.id,
       tecnicoNome: tecnico.name,
+      tecnicoEmail: tecnico.email || '',
       tecnicoAvatar: tecnico.avatar,
       tecnicoAvatarColor: tecnico.avatarColor,
       categoria,
@@ -474,6 +476,8 @@ export default function Booking() {
       citta,
       descrizione,
     })
+    inviaEmailConferma(booking)
+    inviaEmailTecnico(booking)
     setCompletedBooking(booking)
   }
 

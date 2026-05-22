@@ -8,6 +8,7 @@ import { useFavorites } from '../context/FavoritesContext'
 import { useTechnicians } from '../context/TechniciansContext'
 import { useNotifiche } from '../hooks/useNotifiche'
 import ChatWindow from '../components/ChatWindow'
+import { inviaEmailRecensione } from '../services/emailService'
 import {
   Search, FileText, Star, Clock, Shield, ArrowRight, Calendar, MapPin,
   Wrench, CheckCircle, XCircle, Image, MessageSquare, Bell, AlertCircle,
@@ -278,6 +279,13 @@ export default function DashboardCliente() {
 
   const pendingReviews = prenotazioni.filter(b => b.stato === 'completata' && !hasReviewed(b.id))
 
+  // Promemoria: prenotazioni confermate oggi
+  const oggi = new Date()
+  const oggiISO = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, '0')}-${String(oggi.getDate()).padStart(2, '0')}`
+  const appuntamentiOggi = prenotazioni.filter(
+    b => (b.stato === 'confermata' || b.stato === 'in_attesa') && b.dataIntervento === oggiISO
+  )
+
   // Promemoria: prenotazioni confermate domani
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -397,6 +405,27 @@ export default function DashboardCliente() {
           <button onClick={logout} className="btn-secondary text-sm py-2.5 px-5">Esci</button>
         </div>
       </div>
+
+      {/* Promemoria appuntamento OGGI */}
+      {appuntamentiOggi.map(b => (
+        <div key={b.id} className="w-full bg-gradient-to-r from-orange-600 to-red-500 rounded-2xl p-5 mb-4 flex items-center gap-4 shadow-lg">
+          <div className="bg-white/20 rounded-xl p-3 shrink-0">
+            <Bell size={22} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-white text-sm">
+              Promemoria: hai un appuntamento OGGI!
+            </h3>
+            <p className="text-red-100 text-xs mt-0.5">
+              Con <strong className="text-white">{b.tecnicoNome}</strong> alle <strong className="text-white">{b.oraIntervento}</strong> · {b.servizio}
+            </p>
+            <p className="text-red-100 text-xs mt-0.5">Indirizzo: {b.indirizzo}</p>
+          </div>
+          <span className="shrink-0 bg-white text-red-600 font-bold text-xs px-3 py-2 rounded-xl shadow">
+            Oggi
+          </span>
+        </div>
+      ))}
 
       {/* Promemoria appuntamento domani */}
       {appuntamentiDomani.map(b => (

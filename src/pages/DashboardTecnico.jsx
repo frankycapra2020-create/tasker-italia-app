@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import { useReview } from '../context/ReviewContext'
 import { useChat } from '../context/ChatContext'
+import { inviaEmailRecensione } from '../services/emailService'
 import { useNotifiche } from '../hooks/useNotifiche'
 import { useLocation } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard'
@@ -1078,7 +1079,11 @@ export default function DashboardTecnico() {
   const rifiuta = (id) => {
     if (confirm('Vuoi rifiutare questa richiesta?')) updateBooking(id, { stato: 'annullata' })
   }
-  const completa = (id) => updateBooking(id, { stato: 'completata' })
+  const completa = (id) => {
+    updateBooking(id, { stato: 'completata' })
+    const b = miei.find(x => x.id === id)
+    if (b) inviaEmailRecensione(b)
+  }
 
   const totalUnread = getTotalUnread(miei.map(b => b.id), user.id)
 
