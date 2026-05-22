@@ -11,6 +11,8 @@ import {
   Calendar, Phone, Navigation, Loader,
 } from 'lucide-react'
 
+const COMMISSIONE_PERC = 0.05
+
 // ─── Dati di configurazione ──────────────────────────────────────────────────
 
 const CATEGORIE = [
@@ -90,6 +92,8 @@ function PreventivoBadge({ catInfo, oreStimate, urgenza, tecnico, servizio }) {
   const totaleCalc = base + urgenzaExtra
   const minimo = tariffe?.minimoIntervento ?? 0
   const totale = Math.max(totaleCalc, minimo)
+  const commissione = Math.round(totale * COMMISSIONE_PERC * 100) / 100
+  const guadagnoNetto = Math.round((totale - commissione) * 100) / 100
 
   return (
     <div className="card p-5 sticky top-20">
@@ -134,7 +138,7 @@ function PreventivoBadge({ catInfo, oreStimate, urgenza, tecnico, servizio }) {
           </div>
         )}
         <div className="flex justify-between pt-3 border-t border-gray-100">
-          <span className="font-bold text-gray-900">Totale stimato</span>
+          <span className="font-bold text-gray-900">Totale da pagare</span>
           <span className="font-bold text-orange-600 text-lg">{formatPrezzo(totale)}</span>
         </div>
         {catInfo && !tecnico && (
@@ -143,6 +147,20 @@ function PreventivoBadge({ catInfo, oreStimate, urgenza, tecnico, servizio }) {
         {tariffe?.festiviPerc > 0 && (
           <p className="text-xs text-gray-400">+{tariffe.festiviPerc}% per festivi/notturni</p>
         )}
+        {/* Trasparenza commissioni */}
+        <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5 text-xs">
+          <div className="flex justify-between text-gray-500">
+            <span>Tariffa tecnico</span>
+            <span className="font-medium">{formatPrezzo(guadagnoNetto)}</span>
+          </div>
+          <div className="flex justify-between text-green-700">
+            <span>Commissione servizio ({(COMMISSIONE_PERC * 100).toFixed(0)}%)</span>
+            <span className="font-medium">{formatPrezzo(commissione)}</span>
+          </div>
+          <p className="text-gray-400 text-[10px] leading-relaxed pt-0.5">
+            La commissione copre garanzia, supporto e pagamento sicuro.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -428,6 +446,9 @@ export default function Booking() {
     const errs = validateStep3()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
 
+    const commissioneCalc = Math.round(totale * COMMISSIONE_PERC * 100) / 100
+    const guadagnoNettoCalc = Math.round((totale - commissioneCalc) * 100) / 100
+
     const booking = addBooking({
       clienteId: user?.id ?? null,
       clienteNome: user ? `${user.nome} ${user.cognome}` : nomeCliente,
@@ -445,9 +466,12 @@ export default function Booking() {
       chiamata,
       supplemento,
       totaleStimato: totale,
+      commissione: commissioneCalc,
+      guadagnoNetto: guadagnoNettoCalc,
       dataIntervento: dataSelezionata,
       oraIntervento: oraSelezionata,
       indirizzo: `${indirizzo}, ${citta}`,
+      citta,
       descrizione,
     })
     setCompletedBooking(booking)

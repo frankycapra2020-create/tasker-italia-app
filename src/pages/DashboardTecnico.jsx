@@ -50,7 +50,8 @@ const SPEC_ICON = {
 
 const SPECIALIZZAZIONI_LIST = ['Idraulico', 'Elettricista', 'Caldaista', 'Climatizzazione']
 
-const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo', 'Portfolio']
+const TABS = ['Nuove richieste', 'Miei interventi', 'Recensioni', 'Messaggi', 'Tariffe', 'Disponibilità', 'Profilo', 'Portfolio', 'Guadagni']
+const COMMISSIONE_PERC = 0.05
 
 const GIORNI_SETTIMANA = [
   { key: 'lun', label: 'Lunedì' },
@@ -656,6 +657,135 @@ function DisponibilitaTab({ user, updateUser }) {
   )
 }
 
+const MESI_BREVI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+
+function GuadagniTab({ bookings }) {
+  const completati = bookings.filter(b => b.stato === 'completata' || b.stato === 'archiviato')
+
+  const totLordo = completati.reduce((s, b) => s + (b.totaleStimato ?? 0), 0)
+  const totComm  = completati.reduce((s, b) => {
+    const comm = b.commissione ?? Math.round((b.totaleStimato ?? 0) * COMMISSIONE_PERC * 100) / 100
+    return s + comm
+  }, 0)
+  const totNetto = totLordo - totComm
+
+  const fmt = (n) => `€ ${Number(n).toFixed(2).replace('.', ',')}`
+
+  // Ultimi 12 mesi
+  const now = new Date()
+  const monthly = Array.from({ length: 12 }, (_, i) => {
+    const d   = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const jobs = completati.filter(b => b.createdAt?.startsWith(key))
+    const lordo = jobs.reduce((s, b) => s + (b.totaleStimato ?? 0), 0)
+    const comm  = jobs.reduce((s, b) => {
+      return s + (b.commissione ?? Math.round((b.totaleStimato ?? 0) * COMMISSIONE_PERC * 100) / 100)
+    }, 0)
+    return { label: MESI_BREVI[d.getMonth()], lordo, comm, netto: lordo - comm, count: jobs.length }
+  })
+  const maxVal = Math.max(...monthly.map(m => m.lordo), 1)
+
+  return (
+    <div className="space-y-6">
+      {/* Cards riassunto */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <div className="text-xs text-gray-400 mb-1">Guadagno lordo totale</div>
+          <div className="text-2xl font-bold text-gray-900">{fmt(totLordo)}</div>
+          <div className="text-xs text-gray-500 mt-1">{completati.length} lavori completati</div>
+        </div>
+        <div className="bg-red-50 rounded-xl p-5 border border-red-100">
+          <div className="text-xs text-red-500 mb-1">Commissione ProntoTecnico ({(COMMISSIONE_PERC * 100).toFixed(0)}%)</div>
+          <div className="text-2xl font-bold text-red-600">− {fmt(totComm)}</div>
+          <div className="text-xs text-red-400 mt-1">Copre garanzia e supporto</div>
+        </div>
+        <div className="bg-green-50 rounded-xl p-5 border border-green-100">
+          <div className="text-xs text-green-600 mb-1">Guadagno netto (a te)</div>
+          <div className="text-2xl font-bold text-green-700">{fmt(totNetto)}</div>
+          <div className="text-xs text-green-500 mt-1">Importo effettivo ricevuto</div>
+        </div>
+      </div>
+
+      {/* Grafico mensile */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h4 className="font-semibold text-gray-800 mb-4 text-sm">Guadagni mensili (ultimi 12 mesi)</h4>
+        {totLordo === 0 ? (
+          <div className="text-center py-6 text-gray-400 text-sm">Nessun lavoro completato ancora</div>
+        ) : (
+          <>
+            <div className="flex items-end gap-1 h-28">
+              {monthly.map((m, i) => {
+                const pctLordo = maxVal > 0 ? (m.lordo / maxVal) * 100 : 0
+                const pctNetto = maxVal > 0 ? (m.netto / maxVal) * 100 : 0
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1 flex-1 min-w-0 group relative">
+                    <div className="w-full flex flex-col items-center justify-end" style={{ height: '90px' }}>
+                      {/* Barra lordo (sfondo) */}
+                      <div className="w-full relative" style={{ height: `${Math.max(pctLordo, pctLordo > 0 ? 3 : 0)}%` }}>
+                        <div className="w-full h-full bg-gray-200 rounded-t-sm" />
+                        {/* Barra netto (sovrapposta) */}
+                        <div
+                          className="absolute bottom-0 left-0 right-0 bg-green-500 rounded-t-sm"
+                          style={{ height: pctLordo > 0 ? `${(m.netto / m.lordo) * 100}%` : '0%' }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-gray-400 truncate w-full text-center">{m.label}</span>
+                    {/* Tooltip on hover */}
+                    {m.lordo > 0 && (
+                      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1.5 opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                        <div>Lordo: {fmt(m.lordo)}</div>
+                        <div className="text-green-400">Netto: {fmt(m.netto)}</div>
+                        <div>{m.count} lavori</div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gray-200 inline-block" /> Lordo</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> Netto</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Lista lavori con commissione */}
+      <div>
+        <h4 className="font-semibold text-gray-800 text-sm mb-3">Dettaglio per lavoro</h4>
+        {completati.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-sm">Nessun lavoro completato</div>
+        ) : (
+          <div className="space-y-2">
+            {[...completati]
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .slice(0, 20)
+              .map(b => {
+                const lordo = b.totaleStimato ?? 0
+                const comm  = b.commissione ?? Math.round(lordo * COMMISSIONE_PERC * 100) / 100
+                const netto = b.guadagnoNetto ?? (lordo - comm)
+                return (
+                  <div key={b.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 truncate">{b.servizio}</div>
+                      <div className="text-xs text-gray-400">{b.clienteNome} · {formatDateIT(b.dataIntervento)}</div>
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <div className="text-xs text-gray-500">Lordo: <span className="font-semibold text-gray-700">{fmt(lordo)}</span></div>
+                      <div className="text-xs text-red-500">Comm: − {fmt(comm)}</div>
+                      <div className="text-xs text-green-600 font-bold">Netto: {fmt(netto)}</div>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PortfolioTab({ tecnicoId }) {
   const { getPortfolio, addPhoto, removePhoto, updateCaption } = useFavorites()
   const portfolio = getPortfolio(tecnicoId)
@@ -818,12 +948,15 @@ export default function DashboardTecnico() {
   const completati = miei.filter(b => b.stato === 'completata' || b.stato === 'archiviato')
 
   const now = new Date()
-  const guadagniMese = completati
-    .filter(b => {
-      const d = new Date(b.createdAt)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    })
-    .reduce((sum, b) => sum + (b.totaleStimato ?? 0), 0)
+  const completatiMese = completati.filter(b => {
+    const d = new Date(b.createdAt)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+  const guadagniLordoMese = completatiMese.reduce((sum, b) => sum + (b.totaleStimato ?? 0), 0)
+  const commissioneMese   = completatiMese.reduce((sum, b) => {
+    return sum + (b.commissione ?? Math.round((b.totaleStimato ?? 0) * COMMISSIONE_PERC * 100) / 100)
+  }, 0)
+  const guadagniMese = guadagniLordoMese - commissioneMese
 
   const todayISO = now.toISOString().slice(0, 10)
   const prossimiApp = [...miei]
@@ -913,7 +1046,7 @@ export default function DashboardTecnico() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { icon: <Briefcase size={20} className="text-blue-600" />,    label: 'Lavori completati',  value: completati.length, bg: 'bg-blue-50' },
-          { icon: <Euro size={20} className="text-green-600" />,        label: 'Guadagni del mese',  value: guadagniMese > 0 ? `€ ${guadagniMese}` : '€ 0', bg: 'bg-green-50' },
+          { icon: <Euro size={20} className="text-green-600" />,        label: 'Guadagno netto mese', value: guadagniMese > 0 ? `€ ${guadagniMese.toFixed(0)}` : '€ 0', bg: 'bg-green-50', sub: guadagniLordoMese > 0 ? `lordo € ${guadagniLordoMese.toFixed(0)}` : null },
           { icon: <Star size={20} className="text-yellow-500" fill={avgFromReviews !== null ? 'currentColor' : 'none'} />, label: 'Valutazione media', value: avgFromReviews !== null ? `${avgFromReviews.toFixed(1)} ★` : '—', bg: 'bg-yellow-50' },
           { icon: <TrendingUp size={20} className="text-orange-500" />, label: 'Nuove richieste',    value: pendingAll.length, bg: 'bg-orange-50' },
         ].map(s => (
@@ -922,6 +1055,7 @@ export default function DashboardTecnico() {
             <div>
               <div className="text-2xl font-bold text-gray-900">{s.value}</div>
               <div className="text-xs text-gray-500">{s.label}</div>
+              {s.sub && <div className="text-xs text-gray-400 mt-0.5">{s.sub}</div>}
             </div>
           </div>
         ))}
@@ -1153,6 +1287,11 @@ export default function DashboardTecnico() {
               {/* Tab 7: Portfolio */}
               {tab === 7 && (
                 <PortfolioTab tecnicoId={user.id} />
+              )}
+
+              {/* Tab 8: Guadagni */}
+              {tab === 8 && (
+                <GuadagniTab bookings={miei} />
               )}
 
               {/* Tab 2: Recensioni */}

@@ -20,6 +20,7 @@ import Register from './pages/Register'
 import DashboardCliente from './pages/DashboardCliente'
 import DashboardTecnico from './pages/DashboardTecnico'
 import DiventaTecnico from './pages/DiventaTecnico'
+import Admin from './pages/Admin'
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/diventa-tecnico" element={<DiventaTecnico />} />
                   <Route path="/accedi" element={<Login />} />
                   <Route path="/registrati" element={<Register />} />
+                  <Route path="/admin" element={<Admin />} />
                   <Route
                     path="/dashboard/cliente"
                     element={
