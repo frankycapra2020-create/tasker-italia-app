@@ -126,9 +126,10 @@ function MiniBarChart({ data, maxValue, color = 'bg-blue-600' }) {
 }
 
 const TIPO_EMAIL = {
-  conferma_prenotazione: { label: 'Conferma prenotazione', color: 'bg-blue-100 text-blue-700' },
-  nuova_richiesta_tecnico: { label: 'Richiesta al tecnico', color: 'bg-orange-100 text-orange-700' },
-  richiesta_recensione: { label: 'Richiesta recensione', color: 'bg-green-100 text-green-700' },
+  verifica_email:          { label: 'Verifica email',       color: 'bg-purple-100 text-purple-700' },
+  conferma_prenotazione:   { label: 'Conferma prenotazione', color: 'bg-blue-100 text-blue-700' },
+  nuova_richiesta_tecnico: { label: 'Richiesta al tecnico',  color: 'bg-orange-100 text-orange-700' },
+  richiesta_recensione:    { label: 'Richiesta recensione',  color: 'bg-green-100 text-green-700' },
 }
 
 const STATO_EMAIL = {
