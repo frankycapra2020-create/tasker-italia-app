@@ -22,7 +22,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const user = login(form.email, form.password)
+      const user = await login(form.email, form.password)
       if (from) {
         navigate(from)
       } else {

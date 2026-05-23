@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useRef, useCallback } from 'react'
+import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
 const ChatContext = createContext(null)
-const CHATS_KEY = 'pt_chats'
 const READ_KEY = 'pt_chat_read'
 
 function load(key, fallback) {
@@ -9,53 +9,117 @@ function load(key, fallback) {
   catch { return fallback }
 }
 
-export function ChatProvider({ children }) {
-  const [chats, setChats] = useState(() => load(CHATS_KEY, {}))
-  const [readMap, setReadMap] = useState(() => load(READ_KEY, {}))
+function dbToMsg(row) {
+  return {
+    id:         row.id,
+    bookingId:  row.booking_id,
+    senderId:   row.sender_id,
+    senderNome: row.sender_nome,
+    text:       row.text       || null,
+    type:       row.type       || 'text',
+    fileUrl:    row.file_url   || null,
+    fileName:   row.file_name  || null,
+    createdAt:  row.created_at,
+  }
+}
 
-  const chatsRef = useRef(chats)
+export function ChatProvider({ children }) {
+  const [chats, setChats]       = useState({})
+  const [readMap, setReadMap]   = useState(() => load(READ_KEY, {}))
+
+  const chatsRef   = useRef(chats)
   chatsRef.current = chats
-  const readMapRef = useRef(readMap)
+  const readMapRef   = useRef(readMap)
   readMapRef.current = readMap
 
-  const sendMessage = useCallback(({ bookingId, senderId, senderNome, text, type = 'text', fileUrl, fileName }) => {
+  useEffect(() => {
+    // Carica tutti i messaggi al mount
+    supabase
+      .from('messaggi_chat')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return
+        const map = {}
+        data.forEach(row => {
+          const msg = dbToMsg(row)
+          if (!map[msg.bookingId]) map[msg.bookingId] = []
+          map[msg.bookingId].push(msg)
+        })
+        setChats(map)
+      })
+
+    // Aggiornamenti in tempo reale
+    const channel = supabase
+      .channel('messaggi_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messaggi_chat' }, ({ new: row }) => {
+        const msg = dbToMsg(row)
+        setChats(prev => {
+          const existing = prev[msg.bookingId] || []
+          if (existing.some(m => m.id === msg.id)) return prev
+          return { ...prev, [msg.bookingId]: [...existing, msg] }
+        })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  const sendMessage = useCallback(async ({ bookingId, senderId, senderNome, text, type = 'text', fileUrl, fileName }) => {
     const msg = {
-      id: `m${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
+      id:         `m${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
+      bookingId,
       senderId,
       senderNome,
-      text: text || null,
+      text:       text     || null,
       type,
-      fileUrl: fileUrl || null,
-      fileName: fileName || null,
-      createdAt: new Date().toISOString(),
+      fileUrl:    fileUrl  || null,
+      fileName:   fileName || null,
+      createdAt:  new Date().toISOString(),
     }
-    const updated = { ...chatsRef.current, [bookingId]: [...(chatsRef.current[bookingId] || []), msg] }
-    localStorage.setItem(CHATS_KEY, JSON.stringify(updated))
-    setChats(updated)
+
+    // Ottimismo: aggiorna UI immediatamente
+    setChats(prev => ({
+      ...prev,
+      [bookingId]: [...(prev[bookingId] || []), msg],
+    }))
+
+    await supabase.from('messaggi_chat').insert({
+      id:          msg.id,
+      booking_id:  bookingId,
+      sender_id:   senderId   || null,
+      sender_nome: senderNome || null,
+      text:        msg.text,
+      type:        msg.type,
+      file_url:    msg.fileUrl,
+      file_name:   msg.fileName,
+      created_at:  msg.createdAt,
+    })
+
     return msg
   }, [])
 
   const markAsRead = useCallback((bookingId, userId) => {
-    const key = `${userId}_${bookingId}`
-    const now = new Date().toISOString()
+    const key     = `${userId}_${bookingId}`
+    const now     = new Date().toISOString()
     const updated = { ...readMapRef.current, [key]: now }
     localStorage.setItem(READ_KEY, JSON.stringify(updated))
     setReadMap(updated)
   }, [])
 
-  const getMessages = useCallback((bookingId) => chats[bookingId] || [], [chats])
+  const getMessages    = useCallback((bookingId) => chats[bookingId] || [], [chats])
 
-  const getMsgStatus = useCallback((msg, bookingId, otherUserId) => {
-    const key = `${otherUserId}_${bookingId}`
-    const lastRead = readMap[key]
+  const getMsgStatus   = useCallback((msg, bookingId, otherUserId) => {
+    const key      = `${otherUserId}_${bookingId}`
+    const lastRead = readMapRef.current[key]
     if (!lastRead) return 'inviato'
     return lastRead >= msg.createdAt ? 'letto' : 'consegnato'
   }, [readMap])
 
   const getUnread = useCallback((bookingId, userId) => {
-    const key = `${userId}_${bookingId}`
-    const lastRead = readMap[key]
-    const msgs = chats[bookingId] || []
+    const key      = `${userId}_${bookingId}`
+    const lastRead = readMapRef.current[key]
+    const msgs     = chats[bookingId] || []
     return msgs.filter(m => m.senderId !== userId && (!lastRead || m.createdAt > lastRead)).length
   }, [chats, readMap])
 

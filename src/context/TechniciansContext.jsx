@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { technicians as demoTecnici } from '../data/technicians'
 import { DEMO_REGISTERED_TECNICI } from '../data/mockDatabase'
 
-const USERS_KEY = 'pt_users'
 export const TECNICI_EVENT = 'pt_tecnici_updated'
 
 const AVATAR_COLORS = [
@@ -15,73 +15,71 @@ function colorForId(id) {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
 
-function userToTecnico(u) {
-  const nome = u.nome || ''
-  const cognome = u.cognome || ''
+function profileToTecnico(p) {
+  const nome    = p.nome    || ''
+  const cognome = p.cognome || ''
   return {
-    id: `user_${u.id}`,
-    isReal: true,
-    name: `${nome} ${cognome}`.trim(),
-    avatar: `${nome[0]?.toUpperCase() || '?'}${cognome[0]?.toUpperCase() || ''}`,
-    foto: u.foto || null,
-    avatarColor: colorForId(u.id),
-    specializations: Array.isArray(u.specializzazioni) && u.specializzazioni.length
-      ? u.specializzazioni
-      : u.specializzazione ? [u.specializzazione] : [],
-    location: u.zona || 'Italia',
-    lat: null,
-    lng: null,
-    userId: u.id,
-    rating: null,
-    reviews: 0,
-    completedJobs: 0,
-    yearsExp: u.anniEsperienza || 0,
-    pricePerHour: u.tariffe?.oraria || 60,
-    available: u.disponibileOra !== false,
-    attivo: u.attivo !== false,
-    certified: false,
-    bio: u.bio || '',
-    certifications: u.certificazioni ? [u.certificazioni] : [],
-    languages: null,
-    responseTime: null,
-    raggioOperativo: u.raggioOperativo || 100,
-    tariffe: u.tariffe || {},
-    disponibilita: u.disponibilita || null,
-  }
-}
-
-function loadRegisteredTecnici() {
-  try {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]')
-    return users
-      .filter(u => u.ruolo === 'tecnico' && u.attivo !== false)
-      .map(userToTecnico)
-  } catch {
-    return []
-  }
-}
-
-function loadAllRegisteredTecnici() {
-  try {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]')
-    return users.filter(u => u.ruolo === 'tecnico').map(userToTecnico)
-  } catch {
-    return []
+    id:              `user_${p.id}`,
+    isReal:          true,
+    name:            `${nome} ${cognome}`.trim(),
+    avatar:          `${nome[0]?.toUpperCase() || '?'}${cognome[0]?.toUpperCase() || ''}`,
+    foto:            p.foto  || null,
+    avatarColor:     colorForId(p.id),
+    specializations: Array.isArray(p.specializzazioni) && p.specializzazioni.length
+      ? p.specializzazioni
+      : p.specializzazione ? [p.specializzazione] : [],
+    location:        p.zona  || 'Italia',
+    lat:             null,
+    lng:             null,
+    userId:          p.id,
+    rating:          null,
+    reviews:         0,
+    completedJobs:   0,
+    yearsExp:        p.anni_esperienza  || 0,
+    pricePerHour:    p.tariffe?.oraria  || 60,
+    available:       p.disponibile_ora !== false,
+    attivo:          p.attivo          !== false,
+    certified:       false,
+    bio:             p.bio             || '',
+    certifications:  p.certificazioni  ? [p.certificazioni] : [],
+    languages:       null,
+    responseTime:    null,
+    raggioOperativo: p.raggio_operativo || 100,
+    tariffe:         p.tariffe         || {},
+    disponibilita:   p.disponibilita   || null,
   }
 }
 
 const TechniciansContext = createContext(null)
 
 export function TechniciansProvider({ children }) {
-  const [registeredTecnici, setRegisteredTecnici] = useState(() => loadRegisteredTecnici())
+  const [registeredTecnici, setRegisteredTecnici] = useState([])
+
+  const loadFromSupabase = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('ruolo', 'tecnico')
+    if (data) setRegisteredTecnici(data.map(profileToTecnico))
+  }
 
   useEffect(() => {
-    const handler = () => setRegisteredTecnici(loadRegisteredTecnici())
+    loadFromSupabase()
+
+    // Aggiornamenti real-time dei profili tecnici
+    const channel = supabase
+      .channel('profiles_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        loadFromSupabase()
+      })
+      .subscribe()
+
+    const handler = () => loadFromSupabase()
     window.addEventListener(TECNICI_EVENT, handler)
-    window.addEventListener('storage', handler)
+
     return () => {
+      supabase.removeChannel(channel)
       window.removeEventListener(TECNICI_EVENT, handler)
-      window.removeEventListener('storage', handler)
     }
   }, [])
 
@@ -92,7 +90,7 @@ export function TechniciansProvider({ children }) {
     if (demo) return demo
     const demoReg = DEMO_REGISTERED_TECNICI.find(t => String(t.id) === String(id))
     if (demoReg) return demoReg
-    return loadAllRegisteredTecnici().find(t => String(t.id) === String(id)) || null
+    return registeredTecnici.find(t => String(t.id) === String(id)) || null
   }
 
   return (

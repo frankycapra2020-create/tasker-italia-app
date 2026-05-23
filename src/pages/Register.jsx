@@ -54,7 +54,7 @@ function VerificaEmail({ email, nome, ruolo, onVerificato, onIndietro }) {
     setError('')
     setLoading(true)
     try {
-      verifyEmail(email, codice)
+      await verifyEmail(email, codice)
       onVerificato(ruolo)
     } catch (err) {
       setError(err.message)
@@ -88,9 +88,9 @@ function VerificaEmail({ email, nome, ruolo, onVerificato, onIndietro }) {
     setError('')
     if (val.length === 6) {
       // auto-submit when full
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
-          verifyEmail(email, val)
+          await verifyEmail(email, val)
           onVerificato(ruolo)
         } catch (err) {
           setError(err.message)
@@ -262,7 +262,7 @@ export default function Register() {
     setLoading(true)
     try {
       const codice = genera6Cifre()
-      registerPending({ ...form, ruolo }, codice)
+      await registerPending({ ...form, ruolo }, codice)
       await inviaEmailVerifica(form.email, form.nome, codice)
       setVerificaEmail(form.email)
       setStep(3)
