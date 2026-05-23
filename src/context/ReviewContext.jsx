@@ -1,17 +1,26 @@
 import { createContext, useContext, useState } from 'react'
+import { DEMO_REVIEWS } from '../data/mockDatabase'
 
 const ReviewContext = createContext(null)
 const STORAGE_KEY = 'pt_reviews'
 
 function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  try {
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    // Merge: demo reviews always present, local reviews appended (skip duplicates by id)
+    const localIds = new Set(local.map(r => r.id))
+    const demoFiltered = DEMO_REVIEWS.filter(r => !localIds.has(r.id))
+    return [...demoFiltered, ...local]
+  } catch { return [...DEMO_REVIEWS] }
 }
 
 export function ReviewProvider({ children }) {
   const [reviews, setReviews] = useState(load)
 
   const persist = (list) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+    // Save only non-demo reviews to localStorage
+    const localOnly = list.filter(r => !r.id.startsWith('DEMO_'))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(localOnly))
     setReviews(list)
   }
 

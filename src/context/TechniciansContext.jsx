@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { technicians as demoTecnici } from '../data/technicians'
+import { DEMO_REGISTERED_TECNICI } from '../data/mockDatabase'
 
 const USERS_KEY = 'pt_users'
 export const TECNICI_EVENT = 'pt_tecnici_updated'
@@ -84,11 +85,13 @@ export function TechniciansProvider({ children }) {
     }
   }, [])
 
-  const allTecnici = [...demoTecnici, ...registeredTecnici]
+  const allTecnici = [...demoTecnici, ...DEMO_REGISTERED_TECNICI, ...registeredTecnici]
 
   const getTecnicoById = (id) => {
     const demo = demoTecnici.find(t => String(t.id) === String(id))
     if (demo) return demo
+    const demoReg = DEMO_REGISTERED_TECNICI.find(t => String(t.id) === String(id))
+    if (demoReg) return demoReg
     return loadAllRegisteredTecnici().find(t => String(t.id) === String(id)) || null
   }
 

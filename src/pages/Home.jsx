@@ -89,6 +89,13 @@ export default function Home() {
 
   return (
     <div>
+      {/* Demo Mode Banner */}
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5">
+        <p className="text-center text-sm text-amber-800 font-medium">
+          Modalita Demo — i dati utente si resettano al refresh del browser. Presto disponibile con database reale!
+        </p>
+      </div>
+
       {/* Hero */}
       <section className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
